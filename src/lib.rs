@@ -39,7 +39,9 @@ pub trait TestCase {
 /// The outcome of a test.
 #[derive(Clone, Copy, Debug)]
 pub enum Outcome {
+    /// The test passed.
     Passed,
+    /// The test failed.
     Failed,
 }
 
