@@ -155,6 +155,10 @@ fn run_tests() -> ! {
     loop {}
 }
 
+/// Defines a panic handler for running tests.
+/// 
+/// This panic handler is configured to continue execution after a panic, allowing tests to
+/// continue being run after the current test panics.
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     report_test_result(Outcome::Failed);
