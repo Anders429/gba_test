@@ -138,10 +138,14 @@ impl<'de> Deserialize<'de> for Trial<'de> {
     }
 }
 
+/// Status of test execution.
 #[derive(Clone, Copy, Debug)]
 pub enum Status {
+    /// Tests are currently running.
     Running,
+    /// All tests either passed or were ignored.
     Success,
+    /// One or more tests failed.
     Failure,
 }
 
