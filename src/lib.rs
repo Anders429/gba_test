@@ -184,6 +184,7 @@ fn run_tests() -> ! {
         report_test_result(Outcome::Passed);
     }
 
+    // TODO: Sleep.
     loop {}
 }
 
