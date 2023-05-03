@@ -138,6 +138,53 @@ impl<'de> Deserialize<'de> for Trial<'de> {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum Status {
+    Running,
+    Success,
+    Failure,
+}
+
+impl Serialize for Status {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_u8(*self as u8)
+    }
+}
+
+impl<'de> Deserialize<'de> for Status {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct StatusVisitor;
+
+        impl<'de> Visitor<'de> for StatusVisitor {
+            type Value = Status;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a byte containing the value 0, 1, or 2")
+            }
+
+            fn visit_u8<E>(self, value: u8) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                match value {
+                    0 => Ok(Status::Running),
+                    1 => Ok(Status::Success),
+                    2 => Ok(Status::Failure),
+                    _ => Err(E::invalid_value(Unexpected::Unsigned(value.into()), &self)),
+                }
+            }
+        }
+
+        deserializer.deserialize_u8(StatusVisitor)
+    }
+}
+
 /// Write data to SRAM.
 ///
 /// This increments the current SRAM position, ensuring data is not overwritten on future calls.
@@ -204,6 +251,14 @@ pub fn test_runner(tests: &'static [&'static dyn TestCase]) {
     unsafe {
         TESTS = tests;
     }
+
+    // Write the current status.
+    // TODO: Remove this unwrap.
+    write_to_sram(Status::Running).unwrap();
+
+    // Write the number of expected results.
+    // TODO: Remove this unwrap.
+    write_to_sram(tests.len()).unwrap();
 
     run_tests();
 }
