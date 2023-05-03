@@ -16,6 +16,8 @@ const BINCODE_CONFIG: config::Configuration<config::LittleEndian, config::Fixint
 
 /// The remaining tests to be run.
 static mut TESTS: &[&dyn TestCase] = &[];
+/// The name of the current test.
+static mut TEST_NAME: &str = "";
 
 /// Defines a test case executable by the test runner.
 pub trait TestCase {
@@ -123,7 +125,11 @@ fn write_to_sram<T>(value: T) -> Result<(), EncodeError> where T: Serialize {
 
 fn report_test_result(outcome: Outcome) {
     // TODO: Remove this unwrap. We shouldn't be panicking in this code!
-    write_to_sram(outcome).unwrap();
+    write_to_sram(Trial {
+        // SAFETY: `TEST_NAME` is only ever accessed on the main thread.
+        name: unsafe {TEST_NAME},
+        outcome
+    }).unwrap();
 }
 
 /// Runs the remaining tests.
@@ -133,9 +139,10 @@ fn report_test_result(outcome: Outcome) {
 fn run_tests() -> ! {
     // SAFETY: `TESTS` is only ever mutated on the main thread.
     while let Some((test, tests)) = unsafe {TESTS}.split_first() {
-        // SAFETY: `TESTS` is only ever mutated on the main thread.
+        // SAFETY: `TESTS` and `TEST_NAME` are only ever mutated on the main thread.
         unsafe {
             TESTS = tests;
+            TEST_NAME = test.name();
         }
         test.run();
         report_test_result(Outcome::Passed);
