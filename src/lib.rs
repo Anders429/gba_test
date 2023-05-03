@@ -1,7 +1,18 @@
 #![no_std]
 
-use core::{fmt, panic::PanicInfo};
+use core::{fmt, slice, panic::PanicInfo};
+use bincode::{config, error::EncodeError, serde::encode_into_slice};
 use serde::{ser::{Serialize, Serializer, SerializeStruct}, de, de::{Deserialize, Deserializer, SeqAccess, Unexpected, Visitor}};
+
+/// The current write position in SRAM. 
+static mut SRAM_POS: *mut u8 = 0x0E00_0000 as *mut u8;
+/// The end of the SRAM.
+const SRAM_END: *mut u8 = 0x0E00_FFFF as *mut u8;
+
+/// Configuration for bincode encoding.
+/// 
+/// This definition ensures that the same configuration is used across all code.
+const BINCODE_CONFIG: config::Configuration<config::LittleEndian, config::Fixint, config::NoLimit> = config::standard().with_fixed_int_encoding();
 
 /// The remaining tests to be run.
 static mut TESTS: &[&dyn TestCase] = &[];
@@ -101,8 +112,18 @@ impl<'de> Deserialize<'de> for Trial<'de> {
     }
 }
 
+fn write_to_sram<T>(value: T) -> Result<(), EncodeError> where T: Serialize {
+    let remaining_sram = unsafe {slice::from_raw_parts_mut(SRAM_POS, SRAM_END as usize - SRAM_POS as usize)};
+    let encoded_bytes = encode_into_slice(value, remaining_sram, BINCODE_CONFIG)?;
+    unsafe {
+        SRAM_POS = SRAM_POS.add(encoded_bytes);
+    }
+    Ok(())
+}
+
 fn report_test_result(outcome: Outcome) {
-    todo!("write the trial to the next location in SRAM")
+    // TODO: Remove this unwrap. We shouldn't be panicking in this code!
+    write_to_sram(outcome).unwrap();
 }
 
 /// Runs the remaining tests.
@@ -117,6 +138,7 @@ fn run_tests() -> ! {
             TESTS = tests;
         }
         test.run();
+        report_test_result(Outcome::Passed);
     }
 
     loop {}
@@ -124,7 +146,8 @@ fn run_tests() -> ! {
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    loop {}
+    report_test_result(Outcome::Failed);
+    run_tests()
 }
 
 /// A test runner to execute tests as a Game Boy Advance ROM.
