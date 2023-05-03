@@ -118,8 +118,11 @@ impl<'de> Deserialize<'de> for Trial<'de> {
 /// 
 /// This increments the current SRAM position, ensuring data is not overwritten on future calls.
 fn write_to_sram<T>(value: T) -> Result<(), EncodeError> where T: Serialize {
+    // SAFETY: `SRAM_POS` is guaranteed to be less than or equal to `SRAM_END`, and therefore will
+    // point to a valid position in SRAM.
     let remaining_sram = unsafe {slice::from_raw_parts_mut(SRAM_POS, SRAM_END as usize - SRAM_POS as usize)};
     let encoded_bytes = encode_into_slice(value, remaining_sram, BINCODE_CONFIG)?;
+    // SAFETY: `SRAM_POS` is only ever accessed on the main thread.
     unsafe {
         SRAM_POS = SRAM_POS.add(encoded_bytes);
     }
