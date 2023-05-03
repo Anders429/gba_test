@@ -114,6 +114,9 @@ impl<'de> Deserialize<'de> for Trial<'de> {
     }
 }
 
+/// Write data to SRAM.
+/// 
+/// This increments the current SRAM position, ensuring data is not overwritten on future calls.
 fn write_to_sram<T>(value: T) -> Result<(), EncodeError> where T: Serialize {
     let remaining_sram = unsafe {slice::from_raw_parts_mut(SRAM_POS, SRAM_END as usize - SRAM_POS as usize)};
     let encoded_bytes = encode_into_slice(value, remaining_sram, BINCODE_CONFIG)?;
@@ -123,6 +126,7 @@ fn write_to_sram<T>(value: T) -> Result<(), EncodeError> where T: Serialize {
     Ok(())
 }
 
+/// Saves the serialized test result to SRAM.
 fn report_test_result(outcome: Outcome) {
     // TODO: Remove this unwrap. We shouldn't be panicking in this code!
     write_to_sram(Trial {
