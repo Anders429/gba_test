@@ -8,3 +8,4 @@ Currently a work-in-progress.
 - Runnable on actual hardware, rather than only working on specific emulators.
 - Compatibility with custom test runners for specific environments.
 - Display test results on screen.
+- Feature parity with Rust's built-in testing.
