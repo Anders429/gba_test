@@ -45,7 +45,10 @@ use syn::{parse, ItemFn};
 /// ```
 #[proc_macro_attribute]
 pub fn test(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    let function: ItemFn = parse(item).unwrap();
+    let function: ItemFn = match parse(item) {
+        Ok(function) => function,
+        Err(error) => return error.into_compile_error().into(),
+    };
     let name = function.sig.ident.clone();
 
     TokenStream::from(quote! {
