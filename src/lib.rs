@@ -1,4 +1,9 @@
 #![no_std]
+#![cfg_attr(doc_cfg, feature(doc_cfg))]
+
+#[cfg(feature = "gba_test_macros")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "macros")))]
+pub use gba_test_macros::test;
 
 use bincode::{config, error::EncodeError, serde::encode_into_slice};
 use core::{fmt, panic::PanicInfo, slice};
@@ -34,6 +39,29 @@ pub trait TestCase {
     /// If this method panics, the test is considered a failure. Otherwise, the test is considered
     /// to have passed.
     fn run(&self);
+}
+
+/// A standard test.
+///
+/// This struct is created by the `#[test]` attribute. This struct is not to be used directly and
+/// is not considered part of the public API. If you want to use a similar struct, you should
+/// define one locally and implement `TestCase` for it directly.
+#[doc(hidden)]
+pub struct Test {
+    /// The name of the test.
+    pub name: &'static str,
+    /// The test function itself.
+    pub test: fn(),
+}
+
+impl TestCase for Test {
+    fn name(&self) -> &str {
+        self.name
+    }
+
+    fn run(&self) {
+        (self.test)()
+    }
 }
 
 /// The outcome of a test.
