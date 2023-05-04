@@ -2,6 +2,9 @@
 members = [
     "macros",
 ]
+exclude = [
+    "tests/simple"
+]
 
 [package]
 name = "gba_test_runner"

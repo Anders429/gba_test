@@ -281,9 +281,11 @@ fn panic(info: &PanicInfo) -> ! {
 
 /// A test runner to execute tests as a Game Boy Advance ROM.
 pub fn test_runner(tests: &'static [&'static dyn TestCase]) {
-    // SAFETY: `TESTS` is only ever mutated on the main thread.
+    // SAFETY: `TESTS` and `SRAM_POS` are only ever accessed on the main thread.
     unsafe {
         TESTS = tests;
+        // It seems this value must be reinitialized, otherwise it is always nullptr.
+        SRAM_POS = 0x0E00_0000 as *mut u8;
     }
 
     // Write the current status.
