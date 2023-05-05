@@ -15,6 +15,8 @@ use serde::{
 
 /// The current write position in SRAM.
 static mut SRAM_POS: *mut u8 = 0x0E00_0000 as *mut u8;
+/// The start of the SRAM.
+const SRAM_START: *mut u8 = 0x0E00_0000 as *mut u8;
 /// The end of the SRAM.
 const SRAM_END: *mut u8 = 0x0E00_FFFF as *mut u8;
 
@@ -28,6 +30,10 @@ const BINCODE_CONFIG: config::Configuration<config::LittleEndian, config::Fixint
 static mut TESTS: &[&dyn TestCase] = &[];
 /// The name of the current test.
 static mut TEST_NAME: &str = "";
+/// The running status of test execution.
+/// 
+/// This will be set to `Failure` if a test fails.
+static mut STATUS: RunningStatus = RunningStatus::Success;
 
 /// Defines a test case executable by the test runner.
 pub trait TestCase {
@@ -219,6 +225,34 @@ impl<'de> Deserialize<'de> for Status {
     }
 }
 
+/// Status of the currently-running tests.
+/// 
+/// This is a subset of `Status`, as it only expresses the success or failure of the tests. This
+/// can be converted to a full `Status` using the `From` implementation.
+#[derive(Clone, Copy, Debug)]
+enum RunningStatus {
+    Success,
+    Failure,
+}
+
+impl From<RunningStatus> for Status {
+    fn from(running_status: RunningStatus) -> Self {
+        match running_status {
+            RunningStatus::Success => Self::Success,
+            RunningStatus::Failure => Self::Failure,
+        }
+    }
+}
+
+/// Write the status to SRAM.
+/// 
+/// This will always write a single byte at the start of SRAM.
+fn write_status(status: Status) -> Result<(), EncodeError> {
+    let sram = unsafe { slice::from_raw_parts_mut(SRAM_START, SRAM_END as usize - SRAM_START as usize) };
+    encode_into_slice(status, sram, BINCODE_CONFIG)?;
+    Ok(())
+}
+
 /// Write data to SRAM.
 ///
 /// This increments the current SRAM position, ensuring data is not overwritten on future calls.
@@ -247,6 +281,13 @@ fn report_test_result(outcome: Outcome) {
         outcome,
     })
     .unwrap();
+
+    if matches!(outcome, Outcome::Failed) {
+        // SAFETY: `STATUS` is only ever accessed on the main thread.
+        unsafe {
+            STATUS = RunningStatus::Failure;
+        }
+    }
 }
 
 /// Runs the remaining tests.
@@ -264,6 +305,12 @@ fn run_tests() -> ! {
         test.run();
         report_test_result(Outcome::Passed);
     }
+
+    // TODO: Remove this unwrap.
+    write_status(
+        // SAFETY: `STATUS` is only ever accessed on the main thread.
+        unsafe {STATUS}.into()
+    ).unwrap();
 
     // TODO: Sleep.
     loop {}
