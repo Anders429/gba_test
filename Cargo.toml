@@ -3,7 +3,7 @@ members = [
     "macros",
 ]
 exclude = [
-    "tests/simple"
+    "tests/"
 ]
 
 [package]

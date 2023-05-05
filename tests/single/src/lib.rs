@@ -1,3 +1,5 @@
+//! Defines a single basic test.
+
 #![no_std]
 #![no_main]
 #![feature(custom_test_frameworks)]
