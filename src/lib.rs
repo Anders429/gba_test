@@ -1,10 +1,15 @@
 #![no_std]
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
 
+#[cfg(feature = "alloc")]
+extern crate alloc;
+
 #[cfg(feature = "gba_test_macros")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "macros")))]
 pub use gba_test_macros::test;
 
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
 use bincode::{config, error::EncodeError, serde::encode_into_slice};
 use core::{fmt, panic::PanicInfo, slice};
 use serde::{
@@ -23,7 +28,7 @@ const SRAM_END: *mut u8 = 0x0E00_FFFF as *mut u8;
 /// Configuration for bincode encoding.
 ///
 /// This definition ensures that the same configuration is used across all code.
-const BINCODE_CONFIG: config::Configuration<config::LittleEndian, config::Fixint, config::NoLimit> =
+pub const BINCODE_CONFIG: config::Configuration<config::LittleEndian, config::Fixint, config::NoLimit> =
     config::standard().with_fixed_int_encoding();
 
 /// The remaining tests to be run.
@@ -31,7 +36,7 @@ static mut TESTS: &[&dyn TestCase] = &[];
 /// The name of the current test.
 static mut TEST_NAME: &str = "";
 /// The running status of test execution.
-/// 
+///
 /// This will be set to `Failure` if a test fails.
 static mut STATUS: RunningStatus = RunningStatus::Success;
 
@@ -71,7 +76,7 @@ impl TestCase for Test {
 }
 
 /// The outcome of a test.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Outcome {
     /// The test passed.
     Passed,
@@ -119,7 +124,7 @@ impl<'de> Deserialize<'de> for Outcome {
 }
 
 /// A single test result.
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct Trial<'a> {
     /// The name of the test.
     pub name: &'a str,
@@ -175,7 +180,7 @@ impl<'de> Deserialize<'de> for Trial<'de> {
 }
 
 /// Status of test execution.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Status {
     /// Tests are currently running.
     Running,
@@ -226,7 +231,7 @@ impl<'de> Deserialize<'de> for Status {
 }
 
 /// Status of the currently-running tests.
-/// 
+///
 /// This is a subset of `Status`, as it only expresses the success or failure of the tests. This
 /// can be converted to a full `Status` using the `From` implementation.
 #[derive(Clone, Copy, Debug)]
@@ -244,11 +249,68 @@ impl From<RunningStatus> for Status {
     }
 }
 
+#[cfg(feature = "alloc")]
+#[derive(Debug, Eq, PartialEq)]
+pub struct Conclusion<'a> {
+    pub status: Status,
+    pub trials: Vec<Trial<'a>>,
+}
+
+#[cfg(feature = "alloc")]
+impl<'a> Serialize for Conclusion<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut conclusion = serializer.serialize_struct("Conclusion", 2)?;
+
+        conclusion.serialize_field("status", &self.status)?;
+        conclusion.serialize_field("trials", &self.trials)?;
+
+        conclusion.end()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<'de> Deserialize<'de> for Conclusion<'de> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct ConclusionVisitor;
+
+        impl<'de> Visitor<'de> for ConclusionVisitor {
+            type Value = Conclusion<'de>;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("struct Conclusion")
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: SeqAccess<'de>,
+            {
+                let status = seq
+                    .next_element()?
+                    .ok_or(de::Error::missing_field("status"))?;
+                let trials = seq
+                    .next_element()?
+                    .ok_or(de::Error::missing_field("trials"))?;
+
+                Ok(Conclusion { status, trials })
+            }
+        }
+
+        deserializer.deserialize_struct("Conclusion", &["status", "trials"], ConclusionVisitor)
+    }
+}
+
 /// Write the status to SRAM.
-/// 
+///
 /// This will always write a single byte at the start of SRAM.
 fn write_status(status: Status) -> Result<(), EncodeError> {
-    let sram = unsafe { slice::from_raw_parts_mut(SRAM_START, SRAM_END as usize - SRAM_START as usize) };
+    let sram =
+        unsafe { slice::from_raw_parts_mut(SRAM_START, SRAM_END as usize - SRAM_START as usize) };
     encode_into_slice(status, sram, BINCODE_CONFIG)?;
     Ok(())
 }
@@ -309,10 +371,20 @@ fn run_tests() -> ! {
     // TODO: Remove this unwrap.
     write_status(
         // SAFETY: `STATUS` is only ever accessed on the main thread.
-        unsafe {STATUS}.into()
-    ).unwrap();
+        unsafe { STATUS }.into(),
+    )
+    .unwrap();
 
-    // TODO: Sleep.
+    #[cfg(feature = "panic_handler")]
+    unsafe {
+        core::arch::asm!(
+            "swi #0x03",
+            lateout("r0") _,
+            lateout("r1") _,
+            lateout("r2") _,
+            lateout("r3") _
+        );
+    }
     loop {}
 }
 
@@ -320,6 +392,7 @@ fn run_tests() -> ! {
 ///
 /// This panic handler is configured to continue execution after a panic, allowing tests to
 /// continue being run after the current test panics.
+#[cfg(all(not(test), feature = "panic_handler"))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     report_test_result(Outcome::Failed);
