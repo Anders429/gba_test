@@ -22,3 +22,13 @@ After each test is run, the result can be written directly to SRAM. If displayin
 After all tests are run, display mode can display the number of tests that passed and failed, and allow a user to scroll through them.
 
 The format of data written to SRAM should also include the number of tests run at the beginning. This can be known ahead of time by simply examining the `tests` array provided to the test runner.
+
+## Development
+To run the integration tests, you need [`mgba-rom-test`](https://github.com/mgba-emu/mgba/blob/master/src/platform/test/rom-test-main.c). Install it by running the following within a copy of the `mgba` source:
+
+```
+$ cmake .. -DUSE_LIBZIP=OFF -DBUILD_ROM_TEST=ON -DUSE_PNG=OFF
+$ make
+```
+
+Make sure to add `mgba-rom-test` to your `PATH`. The cargo configuration file for the tests should use it automatically.
