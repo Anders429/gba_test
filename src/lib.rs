@@ -23,7 +23,7 @@ use core::fmt;
 #[cfg(feature = "serde")]
 use serde::{
     de,
-    de::{Deserialize, Deserializer, SeqAccess, Unexpected, Visitor},
+    de::{Deserialize, Deserializer, Expected, SeqAccess, Unexpected, Visitor},
     ser::{Serialize, SerializeStruct, Serializer},
 };
 
@@ -192,6 +192,18 @@ pub enum StatusFromU8Error {
     InvalidValue(u8),
 }
 
+impl StatusFromU8Error {
+    #[cfg(feature = "serde")]
+    fn into_serde_error<E>(self, exp: &dyn Expected) -> E
+    where
+        E: de::Error,
+    {
+        match self {
+            Self::InvalidValue(value) => E::invalid_value(Unexpected::Unsigned(value.into()), exp),
+        }
+    }
+}
+
 #[cfg(feature = "serde")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
 impl Serialize for Status {
@@ -223,12 +235,9 @@ impl<'de> Deserialize<'de> for Status {
             where
                 E: de::Error,
             {
-                match value {
-                    0 => Ok(Status::Running),
-                    1 => Ok(Status::Success),
-                    2 => Ok(Status::Failure),
-                    _ => Err(E::invalid_value(Unexpected::Unsigned(value.into()), &self)),
-                }
+                value
+                    .try_into()
+                    .map_err(|err: StatusFromU8Error| err.into_serde_error(&self))
             }
         }
 
