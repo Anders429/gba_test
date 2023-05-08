@@ -1,3 +1,5 @@
+#![cfg(all(feature = "bincode", feature = "alloc"))]
+
 use bincode::serde::decode_borrowed_from_slice;
 use cargo_metadata::Message;
 use gba_test_runner::{Conclusion, Outcome, Status, Trial};

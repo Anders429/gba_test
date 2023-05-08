@@ -4,6 +4,8 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
+#[cfg(feature = "bincode")]
+mod bincode_config;
 #[cfg(feature = "runner")]
 mod runner;
 
@@ -16,7 +18,6 @@ pub use gba_test_macros::test;
 
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
-use bincode::config;
 use core::fmt;
 use serde::{
     de,
@@ -24,14 +25,8 @@ use serde::{
     ser::{Serialize, SerializeStruct, Serializer},
 };
 
-/// Configuration for bincode encoding.
-///
-/// This definition ensures that the same configuration is used across all code.
-pub const BINCODE_CONFIG: config::Configuration<
-    config::LittleEndian,
-    config::Fixint,
-    config::NoLimit,
-> = config::standard().with_fixed_int_encoding();
+#[cfg(feature = "bincode")]
+pub use bincode_config::BINCODE_CONFIG;
 
 /// Defines a test case executable by the test runner.
 pub trait TestCase {
@@ -241,6 +236,7 @@ impl TryFrom<u8> for Status {
 }
 
 #[cfg(feature = "alloc")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "alloc")))]
 #[derive(Debug, Eq, PartialEq)]
 pub struct Conclusion<'a> {
     pub status: Status,
