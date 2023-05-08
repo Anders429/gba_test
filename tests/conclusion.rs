@@ -79,5 +79,10 @@ fn single() {
         }
     );
 
-    command.kill();
+    // It's fine for this not to succeed, as the test has already been completed. This cleanup is
+    // best-effort only.
+    #[allow(unused_must_use)]
+    {
+        command.kill();
+    }
 }

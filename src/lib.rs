@@ -18,6 +18,7 @@ pub use gba_test_macros::test;
 
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
+#[cfg(feature = "serde")]
 use core::fmt;
 #[cfg(feature = "serde")]
 use serde::{
