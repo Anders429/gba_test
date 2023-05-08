@@ -26,7 +26,7 @@ serde = {version = "1.0.160", optional = true, default-features = false}
 cargo_metadata = "0.15.4"
 
 [features]
-alloc = []
+alloc = ["serde?/alloc"]
 bincode = ["dep:bincode", "serde"]
 macros = ["gba_test_macros"]
 runner = ["bincode"]
