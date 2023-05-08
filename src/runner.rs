@@ -125,6 +125,7 @@ fn panic(info: &PanicInfo) -> ! {
 }
 
 /// A test runner to execute tests as a Game Boy Advance ROM.
+#[doc(cfg(feature = "runner"))]
 pub fn test_runner(tests: &'static [&'static dyn TestCase]) {
     // SAFETY: `TESTS` and `SRAM_POS` are only ever accessed on the main thread.
     unsafe {
