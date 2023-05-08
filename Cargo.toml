@@ -28,4 +28,4 @@ cargo_metadata = "0.15.4"
 [features]
 alloc = []
 macros = ["gba_test_macros"]
-panic_handler = []
+runner = []

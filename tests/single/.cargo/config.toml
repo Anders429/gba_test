@@ -2,7 +2,7 @@
 target = "thumbv4t-none-eabi"
 
 [target.thumbv4t-none-eabi]
-runner = "mgba-rom-test -S 3"
+runner = "mgba"
 rustflags = ["-Clink-arg=-Tlinker_script.ld"]
 
 [unstable]

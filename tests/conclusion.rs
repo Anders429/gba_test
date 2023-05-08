@@ -1,7 +1,11 @@
-use gba_test_runner::{Conclusion, Outcome, Status, Trial};
 use bincode::serde::decode_borrowed_from_slice;
 use cargo_metadata::Message;
-use std::{fs, path::PathBuf, process::{Command, Stdio}};
+use gba_test_runner::{Conclusion, Outcome, Status, Trial};
+use std::{
+    fs,
+    path::PathBuf,
+    process::{Command, Stdio},
+};
 
 #[test]
 fn single() {
@@ -12,13 +16,14 @@ fn single() {
             #[cfg(not(debug_assertions))]
             "--release",
             "--message-format=json-render-diagnostics",
-            ]).stdout(Stdio::piped())
-        .current_dir("tests/single").spawn().expect("failed to build test");
-
-    // command.kill();
+        ])
+        .stdout(Stdio::piped())
+        .current_dir("tests/single")
+        .spawn()
+        .expect("failed to build test");
 
     // Find the executable name.
-    let reader = std::io::BufReader::new(command.stdout.take().unwrap());
+    let reader = std::io::BufReader::new(command.stdout.as_mut().unwrap());
     let mut executable_name = None;
     for message in Message::parse_stream(reader) {
         match message.unwrap() {
@@ -26,25 +31,51 @@ fn single() {
                 if let Some(executable) = artifact.executable {
                     executable_name = Some(executable);
                 }
-            },
-            _ => () // Unknown message
+            }
+            Message::BuildFinished(_) => {
+                break;
+            }
+            _ => (), // Unknown message
         }
     }
 
-    // Open the save file.
+    // Produce the save file name.
     let mut save_file = PathBuf::from(executable_name.expect("unable to find executable name"));
     save_file.set_extension("sav");
-    let output = fs::read(save_file).expect("unable to open save file");
-    let conclusion: Conclusion = decode_borrowed_from_slice(&output, gba_test_runner::BINCODE_CONFIG).expect("unable to decode save data");
+
+    let output = loop {
+        if let Ok(output) = fs::read(&save_file) {
+            break output;
+        }
+        std::thread::sleep(std::time::Duration::from_secs(1));
+    };
+
+    let conclusion: Conclusion = loop {
+        if let Some(&first_byte) = output.get(0) {
+            if let Ok(status) = first_byte.try_into() {
+                match status {
+                    Status::Running => continue,
+                    _ => {
+                        break decode_borrowed_from_slice(&output, gba_test_runner::BINCODE_CONFIG)
+                            .expect("unable to decode save data");
+                    }
+                }
+            }
+        }
+        std::thread::sleep(std::time::Duration::from_secs(1));
+    };
 
     // Compare the output with the expected output.
-    assert_eq!(conclusion, Conclusion {
-        status: Status::Success,
-        trials: vec![
-            Trial {
+    assert_eq!(
+        conclusion,
+        Conclusion {
+            status: Status::Success,
+            trials: vec![Trial {
                 name: "it_works",
                 outcome: Outcome::Passed,
-            }
-        ],
-    });
+            }],
+        }
+    );
+
+    command.kill();
 }
