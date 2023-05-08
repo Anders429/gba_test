@@ -19,6 +19,7 @@ pub use gba_test_macros::test;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 use core::fmt;
+#[cfg(feature = "serde")]
 use serde::{
     de,
     de::{Deserialize, Deserializer, SeqAccess, Unexpected, Visitor},
@@ -72,6 +73,8 @@ pub enum Outcome {
     Failed,
 }
 
+#[cfg(feature = "serde")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
 impl Serialize for Outcome {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -81,6 +84,8 @@ impl Serialize for Outcome {
     }
 }
 
+#[cfg(feature = "serde")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
 impl<'de> Deserialize<'de> for Outcome {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -120,6 +125,8 @@ pub struct Trial<'a> {
     pub outcome: Outcome,
 }
 
+#[cfg(feature = "serde")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
 impl<'a> Serialize for Trial<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -134,6 +141,8 @@ impl<'a> Serialize for Trial<'a> {
     }
 }
 
+#[cfg(feature = "serde")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
 impl<'de> Deserialize<'de> for Trial<'de> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -182,6 +191,8 @@ pub enum StatusFromU8Error {
     InvalidValue(u8),
 }
 
+#[cfg(feature = "serde")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
 impl Serialize for Status {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -191,6 +202,8 @@ impl Serialize for Status {
     }
 }
 
+#[cfg(feature = "serde")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
 impl<'de> Deserialize<'de> for Status {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -243,7 +256,8 @@ pub struct Conclusion<'a> {
     pub trials: Vec<Trial<'a>>,
 }
 
-#[cfg(feature = "alloc")]
+#[cfg(all(feature = "alloc", feature = "serde"))]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
 impl<'a> Serialize for Conclusion<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -258,7 +272,8 @@ impl<'a> Serialize for Conclusion<'a> {
     }
 }
 
-#[cfg(feature = "alloc")]
+#[cfg(all(feature = "alloc", feature = "serde"))]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
 impl<'de> Deserialize<'de> for Conclusion<'de> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
