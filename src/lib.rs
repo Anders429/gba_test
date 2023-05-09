@@ -279,6 +279,10 @@ impl From<RunningStatus> for Status {
     }
 }
 
+/// Contains information about the entire test run.
+/// 
+/// When tests are run on the Game Boy Advance, the results available in SRAM are an encoded
+/// `bincode` representation of this struct.
 #[cfg(feature = "alloc")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "alloc")))]
 #[derive(Debug, Eq, PartialEq)]
