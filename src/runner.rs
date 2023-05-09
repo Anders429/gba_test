@@ -1,4 +1,4 @@
-use crate::{Outcome, Status, TestCase, Trial, BINCODE_CONFIG};
+use crate::{Outcome, RunningStatus, Status, TestCase, Trial, BINCODE_CONFIG};
 use bincode::{error::EncodeError, serde::encode_into_slice};
 use core::{panic::PanicInfo, slice};
 use serde::Serialize;
@@ -18,25 +18,6 @@ static mut TEST_NAME: &str = "";
 ///
 /// This will be set to `Failure` if a test fails.
 static mut STATUS: RunningStatus = RunningStatus::Success;
-
-/// Status of the currently-running tests.
-///
-/// This is a subset of `Status`, as it only expresses the success or failure of the tests. This
-/// can be converted to a full `Status` using the `From` implementation.
-#[derive(Clone, Copy, Debug)]
-enum RunningStatus {
-    Success,
-    Failure,
-}
-
-impl From<RunningStatus> for Status {
-    fn from(running_status: RunningStatus) -> Self {
-        match running_status {
-            RunningStatus::Success => Self::Success,
-            RunningStatus::Failure => Self::Failure,
-        }
-    }
-}
 
 /// Write the status to SRAM.
 ///

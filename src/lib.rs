@@ -258,6 +258,27 @@ impl TryFrom<u8> for Status {
     }
 }
 
+/// Status of the currently-running tests.
+///
+/// This is a subset of `Status`, as it only expresses the success or failure of the tests. This
+/// can be converted to a full `Status` using the `From` implementation.
+#[cfg(all(feature = "runner", any(target = "thumbv4t-none-eabi", doc, test)))]
+#[derive(Clone, Copy, Debug)]
+enum RunningStatus {
+    Success,
+    Failure,
+}
+
+#[cfg(all(feature = "runner", any(target = "thumbv4t-none-eabi", doc, test)))]
+impl From<RunningStatus> for Status {
+    fn from(running_status: RunningStatus) -> Self {
+        match running_status {
+            RunningStatus::Success => Self::Success,
+            RunningStatus::Failure => Self::Failure,
+        }
+    }
+}
+
 #[cfg(feature = "alloc")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "alloc")))]
 #[derive(Debug, Eq, PartialEq)]
@@ -314,5 +335,20 @@ impl<'de> Deserialize<'de> for Conclusion<'de> {
         }
 
         deserializer.deserialize_struct("Conclusion", &["status", "trials"], ConclusionVisitor)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{RunningStatus, Status};
+
+    #[test]
+    fn running_status_success_into_status() {
+        assert_eq!(Status::from(RunningStatus::Success), Status::Success);
+    }
+
+    #[test]
+    fn running_status_failure_into_status() {
+        assert_eq!(Status::from(RunningStatus::Failure), Status::Failure);
     }
 }
