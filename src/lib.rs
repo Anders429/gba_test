@@ -6,10 +6,10 @@ extern crate alloc;
 
 #[cfg(feature = "bincode")]
 mod bincode_config;
-#[cfg(feature = "runner")]
+#[cfg(all(feature = "runner", any(target = "thumbv4t-none-eabi", doc)))]
 mod runner;
 
-#[cfg(feature = "runner")]
+#[cfg(all(feature = "runner", any(target = "thumbv4t-none-eabi", doc)))]
 pub use runner::test_runner;
 
 #[cfg(feature = "gba_test_macros")]
