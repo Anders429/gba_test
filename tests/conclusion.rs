@@ -4,9 +4,9 @@ use bincode::serde::decode_borrowed_from_slice;
 use cargo_metadata::Message;
 use gba_test_runner::{Conclusion, Outcome, Status, Trial};
 use std::{
-    fs,
+    env, fs,
     path::PathBuf,
-    process::{Command, Stdio}, env,
+    process::{Command, Stdio},
 };
 
 #[test]
@@ -45,8 +45,17 @@ fn single() {
     let save_file = {
         let mut save_file = PathBuf::from(executable_name.expect("unable to find executable name"));
         save_file.set_extension("sav");
-        env::current_dir().expect("unable to find current directory").join(format!("tests/single/{}", save_file.file_name().expect("unable to obtain save file name").to_str().expect("unable to convert save file name to string")))
-    }; 
+        env::current_dir()
+            .expect("unable to find current directory")
+            .join(format!(
+                "tests/single/{}",
+                save_file
+                    .file_name()
+                    .expect("unable to obtain save file name")
+                    .to_str()
+                    .expect("unable to convert save file name to string")
+            ))
+    };
 
     let output = loop {
         if let Ok(output) = fs::read(&save_file) {
@@ -128,7 +137,16 @@ fn ignore() {
     let save_file = {
         let mut save_file = PathBuf::from(executable_name.expect("unable to find executable name"));
         save_file.set_extension("sav");
-        env::current_dir().expect("unable to find current directory").join(format!("tests/ignore/{}", save_file.file_name().expect("unable to obtain save file name").to_str().expect("unable to convert save file name to string")))
+        env::current_dir()
+            .expect("unable to find current directory")
+            .join(format!(
+                "tests/ignore/{}",
+                save_file
+                    .file_name()
+                    .expect("unable to obtain save file name")
+                    .to_str()
+                    .expect("unable to convert save file name to string")
+            ))
     };
 
     let output = loop {
