@@ -58,7 +58,7 @@ fn report_test_result(outcome: Outcome) {
     })
     .unwrap();
 
-    if matches!(outcome, Outcome::Failed) {
+    if matches!(outcome, Outcome::Failed { .. }) {
         // SAFETY: `STATUS` is only ever accessed on the main thread.
         unsafe {
             STATUS = RunningStatus::Failure;
@@ -107,7 +107,9 @@ fn run_tests() -> ! {
 /// continue being run after the current test panics.
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    report_test_result(Outcome::Failed);
+    report_test_result(Outcome::Failed {
+        message: info.message().map(|m| m.as_str()).flatten().unwrap_or(""),
+    });
     run_tests()
 }
 

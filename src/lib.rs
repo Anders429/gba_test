@@ -1,5 +1,9 @@
 #![no_std]
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
+#![cfg_attr(
+    all(feature = "runner", target = "thumbv4t-none-eabi"),
+    feature(panic_info_message)
+)]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
@@ -24,7 +28,7 @@ use core::fmt;
 use serde::{
     de,
     de::{Deserialize, Deserializer, Expected, SeqAccess, Unexpected, Visitor},
-    ser::{Serialize, SerializeStruct, Serializer},
+    ser::{Serialize, SerializeStruct, SerializeTuple, Serializer},
 };
 
 #[cfg(feature = "bincode")]
@@ -87,56 +91,108 @@ impl TestCase for Test {
 
 /// The outcome of a test.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Outcome {
+pub enum Outcome<'a> {
     /// The test passed.
     Passed,
     /// The test failed.
-    Failed,
+    Failed { message: &'a str },
     /// The test was excluded from the test run.
     Ignored,
 }
 
 #[cfg(feature = "serde")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
-impl Serialize for Outcome {
+impl Serialize for Outcome<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        serializer.serialize_u8(*self as u8)
+        match self {
+            Self::Passed => serializer.serialize_u8(0),
+            Self::Failed { message } => {
+                let mut tuple = serializer.serialize_tuple(2)?;
+                tuple.serialize_element(&1u8)?;
+                tuple.serialize_element(message)?;
+                tuple.end()
+            }
+            Self::Ignored => serializer.serialize_u8(2),
+        }
     }
 }
 
 #[cfg(feature = "serde")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
-impl<'de> Deserialize<'de> for Outcome {
+impl<'de> Deserialize<'de> for Outcome<'de> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
+        enum Variant {
+            Passed,
+            Failed,
+            Ignored,
+        }
+
+        impl<'de> Deserialize<'de> for Variant {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                struct VariantVisitor;
+
+                impl<'de> Visitor<'de> for VariantVisitor {
+                    type Value = Variant;
+
+                    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                        formatter.write_str("a byte containing the value 0, 1, or 2")
+                    }
+
+                    fn visit_u8<E>(self, value: u8) -> Result<Self::Value, E>
+                    where
+                        E: de::Error,
+                    {
+                        match value {
+                            0 => Ok(Variant::Passed),
+                            1 => Ok(Variant::Failed),
+                            2 => Ok(Variant::Ignored),
+                            _ => Err(E::invalid_value(Unexpected::Unsigned(value.into()), &self)),
+                        }
+                    }
+                }
+
+                deserializer.deserialize_u8(VariantVisitor)
+            }
+        }
+
         struct OutcomeVisitor;
 
         impl<'de> Visitor<'de> for OutcomeVisitor {
-            type Value = Outcome;
+            type Value = Outcome<'de>;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a byte containing the value 0 or 1")
+                formatter.write_str("enum Outcome")
             }
 
-            fn visit_u8<E>(self, value: u8) -> Result<Self::Value, E>
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
             where
-                E: de::Error,
+                A: SeqAccess<'de>,
             {
-                match value {
-                    0 => Ok(Outcome::Passed),
-                    1 => Ok(Outcome::Failed),
-                    2 => Ok(Outcome::Ignored),
-                    _ => Err(E::invalid_value(Unexpected::Unsigned(value.into()), &self)),
+                match seq
+                    .next_element()?
+                    .ok_or(de::Error::invalid_length(0, &self))?
+                {
+                    Variant::Passed => Ok(Outcome::Passed),
+                    Variant::Failed => Ok(Outcome::Failed {
+                        message: seq
+                            .next_element()?
+                            .ok_or(de::Error::invalid_length(1, &self))?,
+                    }),
+                    Variant::Ignored => Ok(Outcome::Ignored),
                 }
             }
         }
 
-        deserializer.deserialize_u8(OutcomeVisitor)
+        deserializer.deserialize_tuple(2, OutcomeVisitor)
     }
 }
 
@@ -146,7 +202,7 @@ pub struct Trial<'a> {
     /// The name of the test.
     pub name: &'a str,
     /// The test's outcome.
-    pub outcome: Outcome,
+    pub outcome: Outcome<'a>,
 }
 
 #[cfg(feature = "serde")]
@@ -366,6 +422,7 @@ impl<'de> Deserialize<'de> for Conclusion<'de> {
 }
 
 #[cfg(test)]
+#[cfg(feature = "runner")]
 mod tests {
     use super::{RunningStatus, Status};
 
