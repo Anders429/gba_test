@@ -1,0 +1,7 @@
+[package]
+name = "ignore"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+gba_test_runner = {path = "../../", features = ["bincode", "macros", "runner"]}

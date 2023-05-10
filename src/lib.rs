@@ -30,6 +30,12 @@ use serde::{
 #[cfg(feature = "bincode")]
 pub use bincode_config::BINCODE_CONFIG;
 
+#[derive(Clone, Copy, Debug)]
+pub enum Ignore {
+    No,
+    Yes,
+}
+
 /// Defines a test case executable by the test runner.
 pub trait TestCase {
     /// The name of the test.
@@ -40,6 +46,12 @@ pub trait TestCase {
     /// If this method panics, the test is considered a failure. Otherwise, the test is considered
     /// to have passed.
     fn run(&self);
+
+    /// Whether the test should be excluded or not.
+    ///
+    /// If this method returns true, the test function will not be run at all (but it will still be
+    /// compiled). This allows for time-consuming or expensive tests to be conditionally disabled.
+    fn ignore(&self) -> Ignore;
 }
 
 /// A standard test.
@@ -53,6 +65,10 @@ pub struct Test {
     pub name: &'static str,
     /// The test function itself.
     pub test: fn(),
+    /// Whether the test should be excluded.
+    ///
+    /// This is set by the `#[ignore]` attribute.
+    pub ignore: Ignore,
 }
 
 impl TestCase for Test {
@@ -63,6 +79,10 @@ impl TestCase for Test {
     fn run(&self) {
         (self.test)()
     }
+
+    fn ignore(&self) -> Ignore {
+        self.ignore
+    }
 }
 
 /// The outcome of a test.
@@ -72,6 +92,8 @@ pub enum Outcome {
     Passed,
     /// The test failed.
     Failed,
+    /// The test was excluded from the test run.
+    Ignored,
 }
 
 #[cfg(feature = "serde")]
@@ -108,6 +130,7 @@ impl<'de> Deserialize<'de> for Outcome {
                 match value {
                     0 => Ok(Outcome::Passed),
                     1 => Ok(Outcome::Failed),
+                    2 => Ok(Outcome::Ignored),
                     _ => Err(E::invalid_value(Unexpected::Unsigned(value.into()), &self)),
                 }
             }
@@ -280,7 +303,7 @@ impl From<RunningStatus> for Status {
 }
 
 /// Contains information about the entire test run.
-/// 
+///
 /// When tests are run on the Game Boy Advance, the results available in SRAM are an encoded
 /// `bincode` representation of this struct.
 #[cfg(feature = "alloc")]

@@ -29,8 +29,43 @@
 //! this crate.
 
 use proc_macro::TokenStream;
+use proc_macro2::Span;
 use quote::quote;
-use syn::{parse, ItemFn};
+use syn::{parse, Attribute, Ident, ItemFn};
+
+/// Structured representation of the configuration attributes provided for a test.
+struct Attributes {
+    ignore: Ident,
+}
+
+impl Attributes {
+    /// Returns the default configuration attributes for a test.
+    fn new() -> Self {
+        Self {
+            ignore: Ident::new("No", Span::call_site()),
+        }
+    }
+}
+
+impl From<&Vec<Attribute>> for Attributes {
+    fn from(attributes: &Vec<Attribute>) -> Self {
+        let mut result = Attributes::new();
+
+        for attribute in attributes {
+            if let Some(ident) = attribute.path().get_ident() {
+                match ident.to_string().as_str() {
+                    "ignore" => {
+                        result.ignore = Ident::new("Yes", Span::call_site());
+                    }
+                    // Ignore all other attributes.
+                    _ => {}
+                }
+            }
+        }
+
+        result
+    }
+}
 
 /// Defines a test to be executed on a Game Boy Advance.
 ///
@@ -50,6 +85,8 @@ pub fn test(_attr: TokenStream, item: TokenStream) -> TokenStream {
         Err(error) => return error.into_compile_error().into(),
     };
     let name = function.sig.ident.clone();
+    let attributes = Attributes::from(&function.attrs);
+    let ignore = attributes.ignore;
 
     TokenStream::from(quote! {
         mod #name {
@@ -61,6 +98,7 @@ pub fn test(_attr: TokenStream, item: TokenStream) -> TokenStream {
             const TEST: ::gba_test_runner::Test = ::gba_test_runner::Test {
                 name: stringify!(#name),
                 test: #name,
+                ignore: ::gba_test_runner::Ignore::#ignore,
             };
         }
     })

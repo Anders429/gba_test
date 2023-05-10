@@ -1,4 +1,4 @@
-use crate::{Outcome, RunningStatus, Status, TestCase, Trial, BINCODE_CONFIG};
+use crate::{Ignore, Outcome, RunningStatus, Status, TestCase, Trial, BINCODE_CONFIG};
 use bincode::{error::EncodeError, serde::encode_into_slice};
 use core::{panic::PanicInfo, slice};
 use serde::Serialize;
@@ -78,8 +78,14 @@ fn run_tests() -> ! {
             TESTS = tests;
             TEST_NAME = test.name();
         }
-        test.run();
-        report_test_result(Outcome::Passed);
+
+        match test.ignore() {
+            Ignore::No => {
+                test.run();
+                report_test_result(Outcome::Passed);
+            }
+            Ignore::Yes => report_test_result(Outcome::Ignored),
+        }
     }
 
     // TODO: Remove this unwrap.
