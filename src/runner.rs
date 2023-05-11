@@ -1,6 +1,5 @@
-use crate::{Ignore, Outcome, RunningStatus, Status, TestCase, Trial, BINCODE_CONFIG};
-use bincode::{error::EncodeError, serde::encode_into_slice};
-use core::{panic::PanicInfo, slice};
+use crate::{Ignore, Outcome, RunningStatus, Status, TestCase, Trial};
+use core::{fmt::Display, panic::PanicInfo, slice};
 use serde::Serialize;
 
 /// The current write position in SRAM.
@@ -22,17 +21,17 @@ static mut STATUS: RunningStatus = RunningStatus::Success;
 /// Write the status to SRAM.
 ///
 /// This will always write a single byte at the start of SRAM.
-fn write_status(status: Status) -> Result<(), EncodeError> {
+fn write_status(status: Status) -> Result<(), postcard::Error> {
     let sram =
         unsafe { slice::from_raw_parts_mut(SRAM_START, SRAM_END as usize - SRAM_START as usize) };
-    encode_into_slice(status, sram, BINCODE_CONFIG)?;
+    postcard::to_slice(&status, sram)?;
     Ok(())
 }
 
 /// Write data to SRAM.
 ///
 /// This increments the current SRAM position, ensuring data is not overwritten on future calls.
-fn write_to_sram<T>(value: T) -> Result<(), EncodeError>
+fn write_to_sram<T>(value: T) -> Result<(), postcard::Error>
 where
     T: Serialize,
 {
@@ -40,16 +39,19 @@ where
     // point to a valid position in SRAM.
     let remaining_sram =
         unsafe { slice::from_raw_parts_mut(SRAM_POS, SRAM_END as usize - SRAM_POS as usize) };
-    let encoded_bytes = encode_into_slice(value, remaining_sram, BINCODE_CONFIG)?;
+    let used = postcard::to_slice(&value, remaining_sram)?;
     // SAFETY: `SRAM_POS` is only ever accessed on the main thread.
     unsafe {
-        SRAM_POS = SRAM_POS.add(encoded_bytes);
+        SRAM_POS = SRAM_POS.add(used.len());
     }
     Ok(())
 }
 
 /// Saves the serialized test result to SRAM.
-fn report_test_result(outcome: Outcome) {
+fn report_test_result<FailedMessage>(outcome: Outcome<FailedMessage>)
+where
+    FailedMessage: Copy + Display,
+{
     // TODO: Remove this unwrap. We shouldn't be panicking in this code!
     write_to_sram(Trial {
         // SAFETY: `TEST_NAME` is only ever accessed on the main thread.
@@ -82,9 +84,9 @@ fn run_tests() -> ! {
         match test.ignore() {
             Ignore::No => {
                 test.run();
-                report_test_result(Outcome::Passed);
+                report_test_result(Outcome::<&str>::Passed);
             }
-            Ignore::Yes => report_test_result(Outcome::Ignored),
+            Ignore::Yes => report_test_result(Outcome::<&str>::Ignored),
         }
     }
 
@@ -107,9 +109,7 @@ fn run_tests() -> ! {
 /// continue being run after the current test panics.
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    report_test_result(Outcome::Failed {
-        message: info.message().map(|m| m.as_str()).flatten().unwrap_or(""),
-    });
+    report_test_result(Outcome::Failed { message: info });
     run_tests()
 }
 

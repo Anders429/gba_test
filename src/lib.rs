@@ -8,8 +8,6 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-#[cfg(feature = "bincode")]
-mod bincode_config;
 #[cfg(all(feature = "runner", any(target = "thumbv4t-none-eabi", doc)))]
 mod runner;
 
@@ -24,15 +22,18 @@ pub use gba_test_macros::test;
 use alloc::vec::Vec;
 #[cfg(feature = "serde")]
 use core::fmt;
+use core::fmt::Display;
+use core::str;
+use serde::de::VariantAccess;
 #[cfg(feature = "serde")]
 use serde::{
     de,
-    de::{Deserialize, Deserializer, Expected, SeqAccess, Unexpected, Visitor},
-    ser::{Serialize, SerializeStruct, SerializeTuple, Serializer},
+    de::{
+        Deserialize, Deserializer, EnumAccess, Error as _, MapAccess, SeqAccess, Unexpected,
+        Visitor,
+    },
+    ser::{Serialize, SerializeStruct, SerializeStructVariant, Serializer},
 };
-
-#[cfg(feature = "bincode")]
-pub use bincode_config::BINCODE_CONFIG;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Ignore {
@@ -89,40 +90,57 @@ impl TestCase for Test {
     }
 }
 
+struct SerializeDisplay<T>(T);
+
+impl<T> Serialize for SerializeDisplay<T>
+where
+    T: Display,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.collect_str(&self.0)
+    }
+}
+
 /// The outcome of a test.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Outcome<'a> {
+pub enum Outcome<FailedMessage> {
     /// The test passed.
     Passed,
     /// The test failed.
-    Failed { message: &'a str },
+    Failed { message: FailedMessage },
     /// The test was excluded from the test run.
     Ignored,
 }
 
 #[cfg(feature = "serde")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
-impl Serialize for Outcome<'_> {
+impl<FailedMessage> Serialize for Outcome<FailedMessage>
+where
+    FailedMessage: Display,
+{
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         match self {
-            Self::Passed => serializer.serialize_u8(0),
+            Self::Passed => serializer.serialize_unit_variant("Outcome", 0, "Passed"),
             Self::Failed { message } => {
-                let mut tuple = serializer.serialize_tuple(2)?;
-                tuple.serialize_element(&1u8)?;
-                tuple.serialize_element(message)?;
-                tuple.end()
+                let mut struct_variant =
+                    serializer.serialize_struct_variant("Outcome", 1, "Failed", 1)?;
+                struct_variant.serialize_field("message", &SerializeDisplay(message))?;
+                struct_variant.end()
             }
-            Self::Ignored => serializer.serialize_u8(2),
+            Self::Ignored => serializer.serialize_unit_variant("Outcome", 2, "Ignored"),
         }
     }
 }
 
 #[cfg(feature = "serde")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
-impl<'de> Deserialize<'de> for Outcome<'de> {
+impl<'de> Deserialize<'de> for Outcome<&'de str> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -144,10 +162,10 @@ impl<'de> Deserialize<'de> for Outcome<'de> {
                     type Value = Variant;
 
                     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                        formatter.write_str("a byte containing the value 0, 1, or 2")
+                        formatter.write_str("`Passed`, `Failed`, or `Ignored`")
                     }
 
-                    fn visit_u8<E>(self, value: u8) -> Result<Self::Value, E>
+                    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
                     where
                         E: de::Error,
                     {
@@ -158,56 +176,164 @@ impl<'de> Deserialize<'de> for Outcome<'de> {
                             _ => Err(E::invalid_value(Unexpected::Unsigned(value.into()), &self)),
                         }
                     }
+
+                    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+                    where
+                        E: de::Error,
+                    {
+                        match value {
+                            "Passed" => Ok(Variant::Passed),
+                            "Failed" => Ok(Variant::Failed),
+                            "Ignored" => Ok(Variant::Ignored),
+                            _ => Err(E::unknown_variant(value, VARIANTS)),
+                        }
+                    }
+
+                    fn visit_bytes<E>(self, value: &[u8]) -> Result<Self::Value, E>
+                    where
+                        E: de::Error,
+                    {
+                        match value {
+                            b"Passed" => Ok(Variant::Passed),
+                            b"Failed" => Ok(Variant::Failed),
+                            b"Ignored" => Ok(Variant::Ignored),
+                            _ => {
+                                if let Ok(value) = str::from_utf8(value) {
+                                    Err(E::unknown_variant(value, VARIANTS))
+                                } else {
+                                    Err(E::invalid_value(Unexpected::Bytes(value), &self))
+                                }
+                            }
+                        }
+                    }
                 }
 
-                deserializer.deserialize_u8(VariantVisitor)
+                deserializer.deserialize_identifier(VariantVisitor)
             }
         }
 
-        struct OutcomeVisitor;
+        enum FailedField {
+            Message,
+        }
 
-        impl<'de> Visitor<'de> for OutcomeVisitor {
-            type Value = Outcome<'de>;
+        const FAILED_FIELDS: &[&str] = &["message"];
+
+        impl<'de> Deserialize<'de> for FailedField {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                struct FailedFieldVisitor;
+
+                impl<'de> Visitor<'de> for FailedFieldVisitor {
+                    type Value = FailedField;
+
+                    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                        formatter.write_str("`message`")
+                    }
+
+                    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+                    where
+                        E: de::Error,
+                    {
+                        match value {
+                            "message" => Ok(FailedField::Message),
+                            _ => Err(E::unknown_field(value, FAILED_FIELDS)),
+                        }
+                    }
+                }
+
+                deserializer.deserialize_identifier(FailedFieldVisitor)
+            }
+        }
+
+        struct FailedVisitor;
+
+        impl<'de> Visitor<'de> for FailedVisitor {
+            type Value = Outcome<&'de str>;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("enum Outcome")
+                formatter.write_str("variant Outcome::Failed")
             }
 
             fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
             where
                 A: SeqAccess<'de>,
             {
-                match seq
-                    .next_element()?
-                    .ok_or(de::Error::invalid_length(0, &self))?
-                {
-                    Variant::Passed => Ok(Outcome::Passed),
-                    Variant::Failed => Ok(Outcome::Failed {
-                        message: seq
-                            .next_element()?
-                            .ok_or(de::Error::invalid_length(1, &self))?,
-                    }),
-                    Variant::Ignored => Ok(Outcome::Ignored),
+                Ok(Outcome::Failed {
+                    message: seq
+                        .next_element()?
+                        .ok_or_else(|| de::Error::invalid_length(0, &self))?,
+                })
+            }
+
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: MapAccess<'de>,
+            {
+                let mut message = None;
+
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        FailedField::Message => {
+                            if message.is_some() {
+                                return Err(A::Error::duplicate_field("message"));
+                            }
+                            message = Some(map.next_value()?);
+                        }
+                    }
+                }
+
+                Ok(Outcome::Failed {
+                    message: message.ok_or_else(|| A::Error::missing_field("message"))?,
+                })
+            }
+        }
+
+        struct OutcomeVisitor;
+
+        impl<'de> Visitor<'de> for OutcomeVisitor {
+            type Value = Outcome<&'de str>;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("enum Outcome")
+            }
+
+            fn visit_enum<A>(self, data: A) -> Result<Self::Value, A::Error>
+            where
+                A: EnumAccess<'de>,
+            {
+                match data.variant()? {
+                    (Variant::Passed, variant) => variant.unit_variant().and(Ok(Outcome::Passed)),
+                    (Variant::Failed, variant) => {
+                        variant.struct_variant(FAILED_FIELDS, FailedVisitor)
+                    }
+                    (Variant::Ignored, variant) => variant.unit_variant().and(Ok(Outcome::Ignored)),
                 }
             }
         }
 
-        deserializer.deserialize_tuple(2, OutcomeVisitor)
+        const VARIANTS: &[&str] = &["Passed", "Failed", "Ignored"];
+
+        deserializer.deserialize_enum("Outcome", VARIANTS, OutcomeVisitor)
     }
 }
 
 /// A single test result.
 #[derive(Debug, Eq, PartialEq)]
-pub struct Trial<'a> {
+pub struct Trial<'a, FailedMessage> {
     /// The name of the test.
     pub name: &'a str,
     /// The test's outcome.
-    pub outcome: Outcome<'a>,
+    pub outcome: Outcome<FailedMessage>,
 }
 
 #[cfg(feature = "serde")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
-impl<'a> Serialize for Trial<'a> {
+impl<'a, FailedMessage> Serialize for Trial<'a, FailedMessage>
+where
+    FailedMessage: Display,
+{
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -223,7 +349,7 @@ impl<'a> Serialize for Trial<'a> {
 
 #[cfg(feature = "serde")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
-impl<'de> Deserialize<'de> for Trial<'de> {
+impl<'de> Deserialize<'de> for Trial<'de, &'de str> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -231,7 +357,7 @@ impl<'de> Deserialize<'de> for Trial<'de> {
         struct TrialVisitor;
 
         impl<'de> Visitor<'de> for TrialVisitor {
-            type Value = Trial<'de>;
+            type Value = Trial<'de, &'de str>;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("struct Trial")
@@ -271,18 +397,6 @@ pub enum StatusFromU8Error {
     InvalidValue(u8),
 }
 
-impl StatusFromU8Error {
-    #[cfg(feature = "serde")]
-    fn into_serde_error<E>(self, exp: &dyn Expected) -> E
-    where
-        E: de::Error,
-    {
-        match self {
-            Self::InvalidValue(value) => E::invalid_value(Unexpected::Unsigned(value.into()), exp),
-        }
-    }
-}
-
 #[cfg(feature = "serde")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
 impl Serialize for Status {
@@ -290,7 +404,11 @@ impl Serialize for Status {
     where
         S: Serializer,
     {
-        serializer.serialize_u8(*self as u8)
+        match self {
+            Self::Running => serializer.serialize_unit_variant("Status", 0, "Running"),
+            Self::Success => serializer.serialize_unit_variant("Status", 1, "Success"),
+            Self::Failure => serializer.serialize_unit_variant("Status", 2, "Failure"),
+        }
     }
 }
 
@@ -301,26 +419,97 @@ impl<'de> Deserialize<'de> for Status {
     where
         D: Deserializer<'de>,
     {
+        enum Variant {
+            Running,
+            Success,
+            Failure,
+        }
+
+        impl<'de> Deserialize<'de> for Variant {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                struct VariantVisitor;
+
+                impl<'de> Visitor<'de> for VariantVisitor {
+                    type Value = Variant;
+
+                    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                        formatter.write_str("`Running`, `Success`, or `Failure`")
+                    }
+
+                    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+                    where
+                        E: de::Error,
+                    {
+                        match value {
+                            0 => Ok(Variant::Running),
+                            1 => Ok(Variant::Success),
+                            2 => Ok(Variant::Failure),
+                            _ => Err(E::invalid_value(Unexpected::Unsigned(value.into()), &self)),
+                        }
+                    }
+
+                    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+                    where
+                        E: de::Error,
+                    {
+                        match value {
+                            "Running" => Ok(Variant::Running),
+                            "Success" => Ok(Variant::Success),
+                            "Failure" => Ok(Variant::Failure),
+                            _ => Err(E::unknown_variant(value, VARIANTS)),
+                        }
+                    }
+
+                    fn visit_bytes<E>(self, value: &[u8]) -> Result<Self::Value, E>
+                    where
+                        E: de::Error,
+                    {
+                        match value {
+                            b"Running" => Ok(Variant::Running),
+                            b"Success" => Ok(Variant::Success),
+                            b"Failure" => Ok(Variant::Failure),
+                            _ => {
+                                if let Ok(value) = str::from_utf8(value) {
+                                    Err(E::unknown_variant(value, VARIANTS))
+                                } else {
+                                    Err(E::invalid_value(Unexpected::Bytes(value), &self))
+                                }
+                            }
+                        }
+                    }
+                }
+
+                deserializer.deserialize_identifier(VariantVisitor)
+            }
+        }
+
         struct StatusVisitor;
 
         impl<'de> Visitor<'de> for StatusVisitor {
             type Value = Status;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a byte containing the value 0, 1, or 2")
+                formatter.write_str("enum Status")
             }
 
-            fn visit_u8<E>(self, value: u8) -> Result<Self::Value, E>
+            fn visit_enum<A>(self, data: A) -> Result<Self::Value, A::Error>
             where
-                E: de::Error,
+                A: EnumAccess<'de>,
             {
-                value
-                    .try_into()
-                    .map_err(|err: StatusFromU8Error| err.into_serde_error(&self))
+                match data.variant()? {
+                    (Variant::Running, variant) => variant.unit_variant().and(Ok(Status::Running)),
+                    (Variant::Success, variant) => variant.unit_variant().and(Ok(Status::Success)),
+                    (Variant::Failure, variant) => variant.unit_variant().and(Ok(Status::Failure)),
+                }
             }
         }
 
-        deserializer.deserialize_u8(StatusVisitor)
+        const VARIANTS: &[&str] = &["Running", "Success", "Failure"];
+
+        deserializer.deserialize_enum("Status", VARIANTS, StatusVisitor)
     }
 }
 
@@ -367,7 +556,7 @@ impl From<RunningStatus> for Status {
 #[derive(Debug, Eq, PartialEq)]
 pub struct Conclusion<'a> {
     pub status: Status,
-    pub trials: Vec<Trial<'a>>,
+    pub trials: Vec<Trial<'a, &'a str>>,
 }
 
 #[cfg(all(feature = "alloc", feature = "serde"))]
@@ -417,7 +606,9 @@ impl<'de> Deserialize<'de> for Conclusion<'de> {
             }
         }
 
-        deserializer.deserialize_struct("Conclusion", &["status", "trials"], ConclusionVisitor)
+        const FIELDS: &[&str] = &["status", "trials"];
+
+        deserializer.deserialize_struct("Conclusion", FIELDS, ConclusionVisitor)
     }
 }
 

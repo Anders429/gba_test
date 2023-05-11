@@ -18,8 +18,8 @@ all-features = true
 rustdoc-args = ["--cfg", "doc_cfg"]
 
 [dependencies]
-bincode = {version = "2.0.0-rc.3", optional = true, default-features = false, features = ["serde"]}
 gba_test_macros = {version = "0.1.0", path = "macros/", optional = true}
+postcard = {version = "1.0.4", optional = true, default-features = false}
 serde = {version = "1.0.160", optional = true, default-features = false}
 
 [dev-dependencies]
@@ -27,7 +27,6 @@ cargo_metadata = "0.15.4"
 
 [features]
 alloc = ["serde?/alloc"]
-bincode = ["dep:bincode", "serde"]
 macros = ["gba_test_macros"]
-runner = ["bincode"]
+runner = ["postcard", "serde"]
 serde = ["dep:serde"]

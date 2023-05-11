@@ -17,6 +17,8 @@ Tests will be run single-threaded, recovering after panics. The test results wil
 
 Another alternative is `postcard`. When making this decision, it really comes down to what I can use to serialize the smallest amount of data for a test result.
 
+Update: `postcard` seems to be the way to go. The varint encoding it provides results in very small serializations, and it also implements `Serializer::collect_str()`, which means `PanicInfo` can be serialized without allocations. This makes `postcard` the ideal solution.
+
 After each test is run, the result can be written directly to SRAM. If displaying is enabled, the result will also be written to the screen.
 
 After all tests are run, display mode can display the number of tests that passed and failed, and allow a user to scroll through them.

@@ -1,6 +1,5 @@
-#![cfg(all(feature = "bincode", feature = "alloc"))]
+#![cfg(all(feature = "postcard", feature = "alloc"))]
 
-use bincode::serde::decode_borrowed_from_slice;
 use cargo_metadata::Message;
 use gba_test_runner::{Conclusion, Outcome, Status, Trial};
 use std::{
@@ -70,8 +69,7 @@ fn single() {
                 match status {
                     Status::Running => continue,
                     _ => {
-                        break decode_borrowed_from_slice(&output, gba_test_runner::BINCODE_CONFIG)
-                            .expect("unable to decode save data");
+                        break postcard::from_bytes(&output).expect("unable to decode save data");
                     }
                 }
             }
@@ -162,8 +160,7 @@ fn ignore() {
                 match status {
                     Status::Running => continue,
                     _ => {
-                        break decode_borrowed_from_slice(&output, gba_test_runner::BINCODE_CONFIG)
-                            .expect("unable to decode save data");
+                        break postcard::from_bytes(&output).expect("unable to decode save data");
                     }
                 }
             }
