@@ -1,0 +1,9 @@
+[build]
+target = "thumbv4t-none-eabi"
+
+[target.thumbv4t-none-eabi]
+runner = "mgba -C savegamePath=."
+rustflags = ["-Clink-arg=-Tlinker_script.ld", "-Ctarget-feature=+strict-align"]
+
+[unstable]
+build-std = ["core"]

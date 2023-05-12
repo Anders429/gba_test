@@ -1,6 +1,8 @@
 use crate::{Ignore, Outcome, RunningStatus, Status, TestCase, Trial};
-use core::{fmt::Display, panic::PanicInfo, slice};
+use core::{fmt::Display, mem::ManuallyDrop, panic::PanicInfo, ptr, slice};
+use postcard::ser_flavors::Flavor;
 use serde::Serialize;
+use voladdress::{Safe, Unsafe, VolAddress};
 
 /// The current write position in SRAM.
 static mut SRAM_POS: *mut u8 = 0x0E00_0000 as *mut u8;
@@ -8,6 +10,12 @@ static mut SRAM_POS: *mut u8 = 0x0E00_0000 as *mut u8;
 const SRAM_START: *mut u8 = 0x0E00_0000 as *mut u8;
 /// The end of the SRAM.
 const SRAM_END: *mut u8 = 0x0E00_FFFF as *mut u8;
+
+/// Wait state for interfacing with the GBA Cartridge.
+///
+/// This must be properly configured prior to interacting with the cartridge. Otherwise, garbage
+/// data may be read/written.
+const WAITCNT: VolAddress<u16, Safe, Unsafe> = unsafe { VolAddress::new(0x0400_0204) };
 
 /// The remaining tests to be run.
 static mut TESTS: &[&dyn TestCase] = &[];
@@ -18,13 +26,58 @@ static mut TEST_NAME: &str = "";
 /// This will be set to `Failure` if a test fails.
 static mut STATUS: RunningStatus = RunningStatus::Success;
 
+/// Storage within SRAM.
+///
+/// This struct manages writing serialized data directly to SRAM. It is a `postcard` flavor and can
+/// therefore be used in combination with other flavors.
+struct Sram {
+    /// The current position in SRAM.
+    cursor: *mut u8,
+}
+
+impl Sram {
+    /// Create a new SRAM writer.
+    ///
+    /// This creates a writer to SRAM at the given pointer location.
+    ///
+    /// # Safety
+    /// The pointer location must be a valid location within SRAM (0x0E00_0000 to 0x0E00_FFFF).
+    unsafe fn new(ptr: *mut u8) -> Self {
+        Self { cursor: ptr }
+    }
+}
+
+impl Flavor for Sram {
+    /// Returns the position of the cursor at the end of writing.
+    type Output = *mut u8;
+
+    fn try_push(&mut self, data: u8) -> postcard::Result<()> {
+        // We can write up to and including SRAM_END.
+        if self.cursor >= SRAM_END {
+            return Err(postcard::Error::SerializeBufferFull);
+        }
+        // SAFETY: These writes will always be to a valid location. Additionally, setting WAITCNT
+        // will be safe, as WAITCNT is only written in the main thread.
+        unsafe {
+            // Enable writes to SRAM.
+            WAITCNT.write(3);
+            ptr::write_volatile(self.cursor, data);
+            self.cursor = self.cursor.add(1);
+        }
+        Ok(())
+    }
+
+    fn finalize(self) -> postcard::Result<Self::Output> {
+        Ok(self.cursor)
+    }
+}
+
 /// Write the status to SRAM.
 ///
 /// This will always write a single byte at the start of SRAM.
 fn write_status(status: Status) -> Result<(), postcard::Error> {
-    let sram =
-        unsafe { slice::from_raw_parts_mut(SRAM_START, SRAM_END as usize - SRAM_START as usize) };
-    postcard::to_slice(&status, sram)?;
+    // SAFETY: `SRAM_START` is a valid location in SRAM.
+    postcard::serialize_with_flavor(&status, unsafe { Sram::new(SRAM_START) })?;
     Ok(())
 }
 
@@ -37,12 +90,10 @@ where
 {
     // SAFETY: `SRAM_POS` is guaranteed to be less than or equal to `SRAM_END`, and therefore will
     // point to a valid position in SRAM.
-    let remaining_sram =
-        unsafe { slice::from_raw_parts_mut(SRAM_POS, SRAM_END as usize - SRAM_POS as usize) };
-    let used = postcard::to_slice(&value, remaining_sram)?;
+    let new_position = postcard::serialize_with_flavor(&value, unsafe { Sram::new(SRAM_POS) })?;
     // SAFETY: `SRAM_POS` is only ever accessed on the main thread.
     unsafe {
-        SRAM_POS = SRAM_POS.add(used.len());
+        SRAM_POS = new_position;
     }
     Ok(())
 }
@@ -52,6 +103,13 @@ fn report_test_result<FailedMessage>(outcome: Outcome<FailedMessage>)
 where
     FailedMessage: Copy + Display,
 {
+    if matches!(&outcome, &Outcome::Failed { .. }) {
+        // SAFETY: `STATUS` is only ever accessed on the main thread.
+        unsafe {
+            STATUS = RunningStatus::Failure;
+        }
+    }
+
     // TODO: Remove this unwrap. We shouldn't be panicking in this code!
     write_to_sram(Trial {
         // SAFETY: `TEST_NAME` is only ever accessed on the main thread.
@@ -59,13 +117,6 @@ where
         outcome,
     })
     .unwrap();
-
-    if matches!(outcome, Outcome::Failed { .. }) {
-        // SAFETY: `STATUS` is only ever accessed on the main thread.
-        unsafe {
-            STATUS = RunningStatus::Failure;
-        }
-    }
 }
 
 /// Runs the remaining tests.

@@ -105,7 +105,7 @@ where
 }
 
 /// The outcome of a test.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum Outcome<FailedMessage> {
     /// The test passed.
     Passed,
