@@ -35,9 +35,12 @@ use serde::{
     ser::{Serialize, SerializeStruct, SerializeStructVariant, Serializer},
 };
 
+/// Defines whether a test should be ignored or not.
 #[derive(Clone, Copy, Debug)]
 pub enum Ignore {
+    /// The test should be run.
     No,
+    /// The test should not be run.
     Yes,
 }
 
