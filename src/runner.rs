@@ -56,11 +56,8 @@ impl Flavor for Sram {
         if self.cursor >= SRAM_END {
             return Err(postcard::Error::SerializeBufferFull);
         }
-        // SAFETY: These writes will always be to a valid location. Additionally, setting WAITCNT
-        // will be safe, as WAITCNT is only written in the main thread.
+        // SAFETY: These writes will always be to a valid location.
         unsafe {
-            // Enable writes to SRAM.
-            WAITCNT.write(3);
             ptr::write_volatile(self.cursor, data);
             self.cursor = self.cursor.add(1);
         }
@@ -170,11 +167,14 @@ fn panic(info: &PanicInfo) -> ! {
     doc(cfg(all(feature = "runner", target = "thumbv4t-none-eabi")))
 )]
 pub fn test_runner(tests: &'static [&'static dyn TestCase]) {
-    // SAFETY: `TESTS` and `SRAM_POS` are only ever accessed on the main thread.
+    // SAFETY: `TESTS`, `SRAM_POS`, and `WAITCNT` are only ever accessed on the main thread.
     unsafe {
         TESTS = tests;
         // It seems this value must be reinitialized, otherwise it is always nullptr.
         SRAM_POS = 0x0E00_0000 as *mut u8;
+
+        // Enable writes to SRAM.
+        WAITCNT.write(3);
     }
 
     // Write the current status.
