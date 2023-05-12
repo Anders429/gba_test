@@ -1,5 +1,5 @@
 use crate::{Ignore, Outcome, RunningStatus, Status, TestCase, Trial};
-use core::{fmt::Display, mem::ManuallyDrop, panic::PanicInfo, ptr, slice};
+use core::{fmt::Display, panic::PanicInfo, ptr};
 use postcard::ser_flavors::Flavor;
 use serde::Serialize;
 use voladdress::{Safe, Unsafe, VolAddress};
