@@ -9,7 +9,7 @@ use std::{
 };
 
 #[test]
-fn single() {
+fn pass() {
     // Build and run the test.
     let mut command = Command::new("cargo")
         .args([
@@ -19,7 +19,7 @@ fn single() {
             "--message-format=json-render-diagnostics",
         ])
         .stdout(Stdio::piped())
-        .current_dir("tests/single")
+        .current_dir("tests/pass")
         .spawn()
         .expect("failed to build test");
 
@@ -47,7 +47,7 @@ fn single() {
         env::current_dir()
             .expect("unable to find current directory")
             .join(format!(
-                "tests/single/{}",
+                "tests/pass/{}",
                 save_file
                     .file_name()
                     .expect("unable to obtain save file name")
