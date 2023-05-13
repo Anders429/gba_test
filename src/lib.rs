@@ -510,6 +510,11 @@ impl<'de> Deserialize<'de> for RawStatus {
     }
 }
 
+/// Test execution status.
+///
+/// This enum encodes the current execution status, including test results upon completion.
+///
+/// The data stored by [`test_runner`] can be directly deserialized into this struct using [`postcard`].
 #[cfg(feature = "alloc")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "alloc")))]
 #[derive(Debug, Eq, PartialEq)]
