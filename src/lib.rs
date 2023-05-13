@@ -25,6 +25,8 @@ use core::fmt;
 use core::fmt::Display;
 use core::str;
 use serde::de::VariantAccess;
+#[cfg(all(feature = "serde", feature = "alloc"))]
+use serde::ser::SerializeTupleStruct;
 #[cfg(feature = "serde")]
 use serde::{
     de,
@@ -385,9 +387,74 @@ impl<'de> Deserialize<'de> for Trial<'de, &'de str> {
     }
 }
 
+enum StatusVariant {
+    Running,
+    Completed,
+}
+
+const STATUS_VARIANTS: &[&str] = &["Running", "Completed"];
+
+impl<'de> Deserialize<'de> for StatusVariant {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct StatusVariantVisitor;
+
+        impl<'de> Visitor<'de> for StatusVariantVisitor {
+            type Value = StatusVariant;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("`Running` or `Completed`")
+            }
+
+            fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                match value {
+                    0 => Ok(StatusVariant::Running),
+                    1 => Ok(StatusVariant::Completed),
+                    _ => Err(E::invalid_value(Unexpected::Unsigned(value.into()), &self)),
+                }
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                match value {
+                    "Running" => Ok(StatusVariant::Running),
+                    "Completed" => Ok(StatusVariant::Completed),
+                    _ => Err(E::unknown_variant(value, STATUS_VARIANTS)),
+                }
+            }
+
+            fn visit_bytes<E>(self, value: &[u8]) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                match value {
+                    b"Running" => Ok(StatusVariant::Running),
+                    b"Completed" => Ok(StatusVariant::Completed),
+                    _ => {
+                        if let Ok(value) = str::from_utf8(value) {
+                            Err(E::unknown_variant(value, STATUS_VARIANTS))
+                        } else {
+                            Err(E::invalid_value(Unexpected::Bytes(value), &self))
+                        }
+                    }
+                }
+            }
+        }
+
+        deserializer.deserialize_identifier(StatusVariantVisitor)
+    }
+}
+
 /// Status of test execution.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Status {
+enum RawStatus {
     /// Tests are currently running.
     Running,
     /// The test runner successfully executed all tests.
@@ -396,92 +463,88 @@ pub enum Status {
 
 #[cfg(feature = "serde")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
-impl Serialize for Status {
+impl Serialize for RawStatus {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         match self {
-            Self::Running => serializer.serialize_unit_variant("Status", 0, "Running"),
-            Self::Completed => serializer.serialize_unit_variant("Status", 1, "Completed"),
+            RawStatus::Running => serializer.serialize_unit_variant("RawStatus", 0, "Running"),
+            RawStatus::Completed => serializer.serialize_unit_variant("RawStatus", 1, "Completed"),
         }
     }
 }
 
 #[cfg(feature = "serde")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
-impl<'de> Deserialize<'de> for Status {
+impl<'de> Deserialize<'de> for RawStatus {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        enum Variant {
-            Running,
-            Completed,
-        }
+        struct RawStatusVisitor;
 
-        impl<'de> Deserialize<'de> for Variant {
-            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        impl<'de> Visitor<'de> for RawStatusVisitor {
+            type Value = RawStatus;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("enum RawStatus")
+            }
+
+            fn visit_enum<A>(self, data: A) -> Result<Self::Value, A::Error>
             where
-                D: Deserializer<'de>,
+                A: EnumAccess<'de>,
             {
-                struct VariantVisitor;
-
-                impl<'de> Visitor<'de> for VariantVisitor {
-                    type Value = Variant;
-
-                    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                        formatter.write_str("`Running` or `Completed`")
+                match data.variant()? {
+                    (StatusVariant::Running, variant) => {
+                        variant.unit_variant().and(Ok(RawStatus::Running))
                     }
-
-                    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
-                    where
-                        E: de::Error,
-                    {
-                        match value {
-                            0 => Ok(Variant::Running),
-                            1 => Ok(Variant::Completed),
-                            _ => Err(E::invalid_value(Unexpected::Unsigned(value.into()), &self)),
-                        }
-                    }
-
-                    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-                    where
-                        E: de::Error,
-                    {
-                        match value {
-                            "Running" => Ok(Variant::Running),
-                            "Completed" => Ok(Variant::Completed),
-                            _ => Err(E::unknown_variant(value, VARIANTS)),
-                        }
-                    }
-
-                    fn visit_bytes<E>(self, value: &[u8]) -> Result<Self::Value, E>
-                    where
-                        E: de::Error,
-                    {
-                        match value {
-                            b"Running" => Ok(Variant::Running),
-                            b"Completed" => Ok(Variant::Completed),
-                            _ => {
-                                if let Ok(value) = str::from_utf8(value) {
-                                    Err(E::unknown_variant(value, VARIANTS))
-                                } else {
-                                    Err(E::invalid_value(Unexpected::Bytes(value), &self))
-                                }
-                            }
-                        }
+                    (StatusVariant::Completed, variant) => {
+                        variant.unit_variant().and(Ok(RawStatus::Completed))
                     }
                 }
-
-                deserializer.deserialize_identifier(VariantVisitor)
             }
         }
 
+        deserializer.deserialize_enum("RawStatus", STATUS_VARIANTS, RawStatusVisitor)
+    }
+}
+
+#[cfg(feature = "alloc")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "alloc")))]
+#[derive(Debug, Eq, PartialEq)]
+pub enum Status<'a> {
+    Running,
+    Completed(Vec<Trial<'a, &'a str>>),
+}
+
+#[cfg(feature = "alloc")]
+impl Serialize for Status<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            Self::Running => serializer.serialize_unit_variant("Status", 0, "Running"),
+            Self::Completed(trials) => {
+                let mut tuple_variant = serializer.serialize_tuple_struct("Status", 1)?;
+                tuple_variant.serialize_field(trials)?;
+                tuple_variant.end()
+            }
+        }
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<'de> Deserialize<'de> for Status<'de> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
         struct StatusVisitor;
 
         impl<'de> Visitor<'de> for StatusVisitor {
-            type Value = Status;
+            type Value = Status<'de>;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("enum Status")
@@ -492,81 +555,16 @@ impl<'de> Deserialize<'de> for Status {
                 A: EnumAccess<'de>,
             {
                 match data.variant()? {
-                    (Variant::Running, variant) => variant.unit_variant().and(Ok(Status::Running)),
-                    (Variant::Completed, variant) => {
-                        variant.unit_variant().and(Ok(Status::Completed))
+                    (StatusVariant::Running, variant) => {
+                        variant.unit_variant().and(Ok(Status::Running))
+                    }
+                    (StatusVariant::Completed, variant) => {
+                        variant.newtype_variant().map(Status::Completed)
                     }
                 }
             }
         }
 
-        const VARIANTS: &[&str] = &["Running", "Completed"];
-
-        deserializer.deserialize_enum("Status", VARIANTS, StatusVisitor)
-    }
-}
-
-/// Contains information about the entire test run.
-///
-/// When tests are run on the Game Boy Advance, the results available in SRAM are an encoded
-/// `bincode` representation of this struct.
-#[cfg(feature = "alloc")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "alloc")))]
-#[derive(Debug, Eq, PartialEq)]
-pub struct Conclusion<'a> {
-    pub status: Status,
-    pub trials: Vec<Trial<'a, &'a str>>,
-}
-
-#[cfg(all(feature = "alloc", feature = "serde"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
-impl<'a> Serialize for Conclusion<'a> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut conclusion = serializer.serialize_struct("Conclusion", 2)?;
-
-        conclusion.serialize_field("status", &self.status)?;
-        conclusion.serialize_field("trials", &self.trials)?;
-
-        conclusion.end()
-    }
-}
-
-#[cfg(all(feature = "alloc", feature = "serde"))]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
-impl<'de> Deserialize<'de> for Conclusion<'de> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct ConclusionVisitor;
-
-        impl<'de> Visitor<'de> for ConclusionVisitor {
-            type Value = Conclusion<'de>;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("struct Conclusion")
-            }
-
-            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-            where
-                A: SeqAccess<'de>,
-            {
-                let status = seq
-                    .next_element()?
-                    .ok_or(de::Error::missing_field("status"))?;
-                let trials = seq
-                    .next_element()?
-                    .ok_or(de::Error::missing_field("trials"))?;
-
-                Ok(Conclusion { status, trials })
-            }
-        }
-
-        const FIELDS: &[&str] = &["status", "trials"];
-
-        deserializer.deserialize_struct("Conclusion", FIELDS, ConclusionVisitor)
+        deserializer.deserialize_enum("Status", STATUS_VARIANTS, StatusVisitor)
     }
 }

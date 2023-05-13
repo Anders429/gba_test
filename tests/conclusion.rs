@@ -1,7 +1,7 @@
 #![cfg(all(feature = "postcard", feature = "alloc"))]
 
 use cargo_metadata::Message;
-use gba_test_runner::{Conclusion, Outcome, Status, Trial};
+use gba_test_runner::{Outcome, Status, Trial};
 use std::{
     env, fs,
     path::PathBuf,
@@ -63,13 +63,11 @@ fn pass() {
         std::thread::sleep(std::time::Duration::from_secs(1));
     };
 
-    let conclusion: Conclusion = loop {
+    let status: Status = loop {
         if let Ok(status) = postcard::from_bytes(&output) {
             match status {
                 Status::Running => continue,
-                _ => {
-                    break postcard::from_bytes(&output).expect("unable to decode save data");
-                }
+                _ => break status,
             }
         }
         std::thread::sleep(std::time::Duration::from_secs(1));
@@ -86,14 +84,11 @@ fn pass() {
 
     // Compare the output with the expected output.
     assert_eq!(
-        conclusion,
-        Conclusion {
-            status: Status::Completed,
-            trials: vec![Trial {
-                name: "it_works",
-                outcome: Outcome::Passed,
-            }],
-        }
+        status,
+        Status::Completed(vec![Trial {
+            name: "it_works",
+            outcome: Outcome::Passed,
+        }]),
     );
 }
 
@@ -152,13 +147,11 @@ fn ignore() {
         std::thread::sleep(std::time::Duration::from_secs(1));
     };
 
-    let conclusion: Conclusion = loop {
+    let status: Status = loop {
         if let Ok(status) = postcard::from_bytes(&output) {
             match status {
                 Status::Running => continue,
-                _ => {
-                    break postcard::from_bytes(&output).expect("unable to decode save data");
-                }
+                _ => break status,
             }
         }
         std::thread::sleep(std::time::Duration::from_secs(1));
@@ -175,14 +168,11 @@ fn ignore() {
 
     // Compare the output with the expected output.
     assert_eq!(
-        conclusion,
-        Conclusion {
-            status: Status::Completed,
-            trials: vec![Trial {
-                name: "it_works",
-                outcome: Outcome::Ignored,
-            }],
-        }
+        status,
+        Status::Completed(vec![Trial {
+            name: "it_works",
+            outcome: Outcome::Ignored,
+        }]),
     );
 }
 
@@ -241,13 +231,11 @@ fn fail() {
         std::thread::sleep(std::time::Duration::from_secs(1));
     };
 
-    let conclusion: Conclusion = loop {
+    let status: Status = loop {
         if let Ok(status) = postcard::from_bytes(&output) {
             match status {
                 Status::Running => continue,
-                _ => {
-                    break postcard::from_bytes(&output).expect("unable to decode save data");
-                }
+                _ => break status,
             }
         }
         std::thread::sleep(std::time::Duration::from_secs(1));
@@ -264,15 +252,12 @@ fn fail() {
 
     // Compare the output with the expected output.
     assert_eq!(
-        conclusion,
-        Conclusion {
-            status: Status::Completed,
-            trials: vec![Trial {
+        status,
+        Status::Completed(vec![Trial {
                 name: "it_works",
                 outcome: Outcome::Failed {
                     message: "panicked at 'assertion failed: `(left == right)`\n  left: `4`,\n right: `5`', src/lib.rs:28:9",
                 },
-            }],
-        }
+            }]),
     );
 }

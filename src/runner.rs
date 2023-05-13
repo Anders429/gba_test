@@ -1,4 +1,4 @@
-use crate::{Ignore, Outcome, Status, TestCase, Trial};
+use crate::{Ignore, Outcome, RawStatus, TestCase, Trial};
 use core::{fmt::Display, panic::PanicInfo, ptr};
 use postcard::ser_flavors::Flavor;
 use serde::Serialize;
@@ -68,7 +68,7 @@ impl Flavor for Sram {
 /// Write the status to SRAM.
 ///
 /// This will always write a single byte at the start of SRAM.
-fn write_status(status: Status) -> Result<(), postcard::Error> {
+fn write_status(status: RawStatus) -> Result<(), postcard::Error> {
     // SAFETY: `SRAM_START` is a valid location in SRAM.
     postcard::serialize_with_flavor(&status, unsafe { Sram::new(SRAM_START) })?;
     Ok(())
@@ -128,7 +128,7 @@ fn run_tests() -> ! {
     }
 
     // TODO: Remove this unwrap.
-    write_status(Status::Completed).unwrap();
+    write_status(RawStatus::Completed).unwrap();
 
     unsafe {
         core::arch::asm!("swi #0x03",);
@@ -164,7 +164,7 @@ pub fn test_runner(tests: &'static [&'static dyn TestCase]) {
 
     // Write the current status.
     // TODO: Remove this unwrap.
-    write_to_sram(Status::Running).unwrap();
+    write_to_sram(RawStatus::Running).unwrap();
 
     // Write the number of expected results.
     // TODO: Remove this unwrap.
