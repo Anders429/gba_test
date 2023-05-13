@@ -387,6 +387,11 @@ impl<'de> Deserialize<'de> for Trial<'de, &'de str> {
     }
 }
 
+/// Separate enum for deserializing the variant of a Status.
+///
+/// This is separate from `RawStatus` because of the deserialization context in which it is used.
+/// `StatusVariant` is used to deserialize the variant, which `RawStatus` and `Status` are used to
+/// deserialize the full `enum` based on which variant is deserialized here.
 enum StatusVariant {
     Running,
     Completed,
@@ -452,7 +457,10 @@ impl<'de> Deserialize<'de> for StatusVariant {
     }
 }
 
-/// Status of test execution.
+/// Raw status of test execution.
+///
+/// This is essentially just the Status variant. This allows serialization of only the variant,
+/// which allows it to be used in contexts where allocation is not available.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum RawStatus {
     /// Tests are currently running.
