@@ -396,10 +396,6 @@ pub enum Status {
     Failure,
 }
 
-pub enum StatusFromU8Error {
-    InvalidValue(u8),
-}
-
 #[cfg(feature = "serde")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "serde")))]
 impl Serialize for Status {
@@ -513,19 +509,6 @@ impl<'de> Deserialize<'de> for Status {
         const VARIANTS: &[&str] = &["Running", "Success", "Failure"];
 
         deserializer.deserialize_enum("Status", VARIANTS, StatusVisitor)
-    }
-}
-
-impl TryFrom<u8> for Status {
-    type Error = StatusFromU8Error;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(Status::Running),
-            1 => Ok(Status::Success),
-            2 => Ok(Status::Failure),
-            _ => Err(StatusFromU8Error::InvalidValue(value)),
-        }
     }
 }
 

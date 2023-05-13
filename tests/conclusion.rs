@@ -64,13 +64,11 @@ fn pass() {
     };
 
     let conclusion: Conclusion = loop {
-        if let Some(&first_byte) = output.get(0) {
-            if let Ok(status) = first_byte.try_into() {
-                match status {
-                    Status::Running => continue,
-                    _ => {
-                        break postcard::from_bytes(&output).expect("unable to decode save data");
-                    }
+        if let Ok(status) = postcard::from_bytes(&output) {
+            match status {
+                Status::Running => continue,
+                _ => {
+                    break postcard::from_bytes(&output).expect("unable to decode save data");
                 }
             }
         }
@@ -155,13 +153,11 @@ fn ignore() {
     };
 
     let conclusion: Conclusion = loop {
-        if let Some(&first_byte) = output.get(0) {
-            if let Ok(status) = first_byte.try_into() {
-                match status {
-                    Status::Running => continue,
-                    _ => {
-                        break postcard::from_bytes(&output).expect("unable to decode save data");
-                    }
+        if let Ok(status) = postcard::from_bytes(&output) {
+            match status {
+                Status::Running => continue,
+                _ => {
+                    break postcard::from_bytes(&output).expect("unable to decode save data");
                 }
             }
         }
@@ -246,13 +242,11 @@ fn fail() {
     };
 
     let conclusion: Conclusion = loop {
-        if let Some(&first_byte) = output.get(0) {
-            if let Ok(status) = first_byte.try_into() {
-                match status {
-                    Status::Running => continue,
-                    _ => {
-                        break postcard::from_bytes(&output).expect("unable to decode save data");
-                    }
+        if let Ok(status) = postcard::from_bytes(&output) {
+            match status {
+                Status::Running => continue,
+                _ => {
+                    break postcard::from_bytes(&output).expect("unable to decode save data");
                 }
             }
         }
