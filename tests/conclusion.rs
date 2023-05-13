@@ -88,7 +88,7 @@ fn pass() {
     assert_eq!(
         conclusion,
         Conclusion {
-            status: Status::Success,
+            status: Status::Completed,
             trials: vec![Trial {
                 name: "it_works",
                 outcome: Outcome::Passed,
@@ -177,7 +177,7 @@ fn ignore() {
     assert_eq!(
         conclusion,
         Conclusion {
-            status: Status::Success,
+            status: Status::Completed,
             trials: vec![Trial {
                 name: "it_works",
                 outcome: Outcome::Ignored,
@@ -266,7 +266,7 @@ fn fail() {
     assert_eq!(
         conclusion,
         Conclusion {
-            status: Status::Failure,
+            status: Status::Completed,
             trials: vec![Trial {
                 name: "it_works",
                 outcome: Outcome::Failed {

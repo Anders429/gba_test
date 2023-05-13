@@ -390,10 +390,8 @@ impl<'de> Deserialize<'de> for Trial<'de, &'de str> {
 pub enum Status {
     /// Tests are currently running.
     Running,
-    /// All tests either passed or were ignored.
-    Success,
-    /// One or more tests failed.
-    Failure,
+    /// The test runner successfully executed all tests.
+    Completed,
 }
 
 #[cfg(feature = "serde")]
@@ -405,8 +403,7 @@ impl Serialize for Status {
     {
         match self {
             Self::Running => serializer.serialize_unit_variant("Status", 0, "Running"),
-            Self::Success => serializer.serialize_unit_variant("Status", 1, "Success"),
-            Self::Failure => serializer.serialize_unit_variant("Status", 2, "Failure"),
+            Self::Completed => serializer.serialize_unit_variant("Status", 1, "Completed"),
         }
     }
 }
@@ -420,8 +417,7 @@ impl<'de> Deserialize<'de> for Status {
     {
         enum Variant {
             Running,
-            Success,
-            Failure,
+            Completed,
         }
 
         impl<'de> Deserialize<'de> for Variant {
@@ -435,7 +431,7 @@ impl<'de> Deserialize<'de> for Status {
                     type Value = Variant;
 
                     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                        formatter.write_str("`Running`, `Success`, or `Failure`")
+                        formatter.write_str("`Running` or `Completed`")
                     }
 
                     fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
@@ -444,8 +440,7 @@ impl<'de> Deserialize<'de> for Status {
                     {
                         match value {
                             0 => Ok(Variant::Running),
-                            1 => Ok(Variant::Success),
-                            2 => Ok(Variant::Failure),
+                            1 => Ok(Variant::Completed),
                             _ => Err(E::invalid_value(Unexpected::Unsigned(value.into()), &self)),
                         }
                     }
@@ -456,8 +451,7 @@ impl<'de> Deserialize<'de> for Status {
                     {
                         match value {
                             "Running" => Ok(Variant::Running),
-                            "Success" => Ok(Variant::Success),
-                            "Failure" => Ok(Variant::Failure),
+                            "Completed" => Ok(Variant::Completed),
                             _ => Err(E::unknown_variant(value, VARIANTS)),
                         }
                     }
@@ -468,8 +462,7 @@ impl<'de> Deserialize<'de> for Status {
                     {
                         match value {
                             b"Running" => Ok(Variant::Running),
-                            b"Success" => Ok(Variant::Success),
-                            b"Failure" => Ok(Variant::Failure),
+                            b"Completed" => Ok(Variant::Completed),
                             _ => {
                                 if let Ok(value) = str::from_utf8(value) {
                                     Err(E::unknown_variant(value, VARIANTS))
@@ -500,36 +493,16 @@ impl<'de> Deserialize<'de> for Status {
             {
                 match data.variant()? {
                     (Variant::Running, variant) => variant.unit_variant().and(Ok(Status::Running)),
-                    (Variant::Success, variant) => variant.unit_variant().and(Ok(Status::Success)),
-                    (Variant::Failure, variant) => variant.unit_variant().and(Ok(Status::Failure)),
+                    (Variant::Completed, variant) => {
+                        variant.unit_variant().and(Ok(Status::Completed))
+                    }
                 }
             }
         }
 
-        const VARIANTS: &[&str] = &["Running", "Success", "Failure"];
+        const VARIANTS: &[&str] = &["Running", "Completed"];
 
         deserializer.deserialize_enum("Status", VARIANTS, StatusVisitor)
-    }
-}
-
-/// Status of the currently-running tests.
-///
-/// This is a subset of `Status`, as it only expresses the success or failure of the tests. This
-/// can be converted to a full `Status` using the `From` implementation.
-#[cfg(all(feature = "runner", any(target = "thumbv4t-none-eabi", doc, test)))]
-#[derive(Clone, Copy, Debug)]
-enum RunningStatus {
-    Success,
-    Failure,
-}
-
-#[cfg(all(feature = "runner", any(target = "thumbv4t-none-eabi", doc, test)))]
-impl From<RunningStatus> for Status {
-    fn from(running_status: RunningStatus) -> Self {
-        match running_status {
-            RunningStatus::Success => Self::Success,
-            RunningStatus::Failure => Self::Failure,
-        }
     }
 }
 
@@ -595,21 +568,5 @@ impl<'de> Deserialize<'de> for Conclusion<'de> {
         const FIELDS: &[&str] = &["status", "trials"];
 
         deserializer.deserialize_struct("Conclusion", FIELDS, ConclusionVisitor)
-    }
-}
-
-#[cfg(test)]
-#[cfg(feature = "runner")]
-mod tests {
-    use super::{RunningStatus, Status};
-
-    #[test]
-    fn running_status_success_into_status() {
-        assert_eq!(Status::from(RunningStatus::Success), Status::Success);
-    }
-
-    #[test]
-    fn running_status_failure_into_status() {
-        assert_eq!(Status::from(RunningStatus::Failure), Status::Failure);
     }
 }

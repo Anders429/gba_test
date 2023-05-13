@@ -1,4 +1,4 @@
-use crate::{Ignore, Outcome, RunningStatus, Status, TestCase, Trial};
+use crate::{Ignore, Outcome, Status, TestCase, Trial};
 use core::{fmt::Display, panic::PanicInfo, ptr};
 use postcard::ser_flavors::Flavor;
 use serde::Serialize;
@@ -21,10 +21,6 @@ const WAITCNT: VolAddress<u16, Safe, Unsafe> = unsafe { VolAddress::new(0x0400_0
 static mut TESTS: &[&dyn TestCase] = &[];
 /// The name of the current test.
 static mut TEST_NAME: &str = "";
-/// The running status of test execution.
-///
-/// This will be set to `Failure` if a test fails.
-static mut STATUS: RunningStatus = RunningStatus::Success;
 
 /// Storage within SRAM.
 ///
@@ -100,13 +96,6 @@ fn report_test_result<FailedMessage>(outcome: Outcome<FailedMessage>)
 where
     FailedMessage: Copy + Display,
 {
-    if matches!(&outcome, &Outcome::Failed { .. }) {
-        // SAFETY: `STATUS` is only ever accessed on the main thread.
-        unsafe {
-            STATUS = RunningStatus::Failure;
-        }
-    }
-
     // TODO: Remove this unwrap. We shouldn't be panicking in this code!
     write_to_sram(Trial {
         // SAFETY: `TEST_NAME` is only ever accessed on the main thread.
@@ -139,11 +128,7 @@ fn run_tests() -> ! {
     }
 
     // TODO: Remove this unwrap.
-    write_status(
-        // SAFETY: `STATUS` is only ever accessed on the main thread.
-        unsafe { STATUS }.into(),
-    )
-    .unwrap();
+    write_status(Status::Completed).unwrap();
 
     unsafe {
         core::arch::asm!("swi #0x03",);
