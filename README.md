@@ -1,5 +1,5 @@
-# gba_test_runner
-An emulator-agnostic test runner for the Game Boy Advance.
+# gba_test
+Unit testing framework for the Game Boy Advance.
 
 Currently a work-in-progress.
 

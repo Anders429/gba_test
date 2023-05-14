@@ -10,7 +10,7 @@
 //!
 //! #[cfg(test)]
 //! mod tests {
-//!     use gba_test_runner::test;
+//!     use gba_test_macros::test;
 //!
 //!     #[test]
 //!     fn it_works() {
@@ -95,10 +95,10 @@ pub fn test(_attr: TokenStream, item: TokenStream) -> TokenStream {
             #function
 
             #[test_case]
-            const TEST: ::gba_test_runner::Test = ::gba_test_runner::Test {
+            const TEST: ::gba_test::Test = ::gba_test::Test {
                 name: stringify!(#name),
                 test: #name,
-                ignore: ::gba_test_runner::Ignore::#ignore,
+                ignore: ::gba_test::Ignore::#ignore,
             };
         }
     })

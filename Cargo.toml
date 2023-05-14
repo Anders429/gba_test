@@ -7,7 +7,7 @@ exclude = [
 ]
 
 [package]
-name = "gba_test_runner"
+name = "gba_test"
 version = "0.1.0"
 edition = "2021"
 

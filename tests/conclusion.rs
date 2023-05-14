@@ -1,7 +1,7 @@
 #![cfg(all(feature = "postcard", feature = "alloc"))]
 
 use cargo_metadata::Message;
-use gba_test_runner::{Outcome, Status, Trial};
+use gba_test::{Outcome, Status, Trial};
 use std::{
     env, fs,
     path::PathBuf,
