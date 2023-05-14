@@ -10,9 +10,11 @@ extern crate alloc;
 
 #[cfg(all(feature = "runner", any(target = "thumbv4t-none-eabi", doc)))]
 mod runner;
+mod test_case;
 
 #[cfg(all(feature = "runner", any(target = "thumbv4t-none-eabi", doc)))]
 pub use runner::runner;
+pub use test_case::{Ignore, Test, TestCase};
 
 #[cfg(feature = "gba_test_macros")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "macros")))]
@@ -36,64 +38,6 @@ use serde::{
     },
     ser::{Serialize, SerializeStruct, SerializeStructVariant, Serializer},
 };
-
-/// Defines whether a test should be ignored or not.
-#[derive(Clone, Copy, Debug)]
-pub enum Ignore {
-    /// The test should be run.
-    No,
-    /// The test should not be run.
-    Yes,
-}
-
-/// Defines a test case executable by the test runner.
-pub trait TestCase {
-    /// The name of the test.
-    fn name(&self) -> &str;
-
-    /// The actual test itself.
-    ///
-    /// If this method panics, the test is considered a failure. Otherwise, the test is considered
-    /// to have passed.
-    fn run(&self);
-
-    /// Whether the test should be excluded or not.
-    ///
-    /// If this method returns true, the test function will not be run at all (but it will still be
-    /// compiled). This allows for time-consuming or expensive tests to be conditionally disabled.
-    fn ignore(&self) -> Ignore;
-}
-
-/// A standard test.
-///
-/// This struct is created by the `#[test]` attribute. This struct is not to be used directly and
-/// is not considered part of the public API. If you want to use a similar struct, you should
-/// define one locally and implement `TestCase` for it directly.
-#[doc(hidden)]
-pub struct Test {
-    /// The name of the test.
-    pub name: &'static str,
-    /// The test function itself.
-    pub test: fn(),
-    /// Whether the test should be excluded.
-    ///
-    /// This is set by the `#[ignore]` attribute.
-    pub ignore: Ignore,
-}
-
-impl TestCase for Test {
-    fn name(&self) -> &str {
-        self.name
-    }
-
-    fn run(&self) {
-        (self.test)()
-    }
-
-    fn ignore(&self) -> Ignore {
-        self.ignore
-    }
-}
 
 struct SerializeDisplay<T>(T);
 
@@ -522,7 +466,7 @@ impl<'de> Deserialize<'de> for RawStatus {
 ///
 /// This enum encodes the current execution status, including test results upon completion.
 ///
-/// The data stored by [`test_runner`] can be directly deserialized into this struct using [`postcard`].
+/// The data stored by the [`runner()`] can be directly deserialized into this struct using [`postcard`].
 #[cfg(feature = "alloc")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "alloc")))]
 #[derive(Debug, Eq, PartialEq)]
