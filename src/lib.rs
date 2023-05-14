@@ -12,7 +12,7 @@ extern crate alloc;
 mod runner;
 
 #[cfg(all(feature = "runner", any(target = "thumbv4t-none-eabi", doc)))]
-pub use runner::test_runner;
+pub use runner::runner;
 
 #[cfg(feature = "gba_test_macros")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "macros")))]

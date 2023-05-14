@@ -151,7 +151,7 @@ fn panic(info: &PanicInfo) -> ! {
     doc_cfg,
     doc(cfg(all(feature = "runner", target = "thumbv4t-none-eabi")))
 )]
-pub fn test_runner(tests: &'static [&'static dyn TestCase]) {
+pub fn runner(tests: &'static [&'static dyn TestCase]) {
     // SAFETY: `TESTS`, `SRAM_POS`, and `WAITCNT` are only ever accessed on the main thread.
     unsafe {
         TESTS = tests;
