@@ -16,8 +16,10 @@ use serde::{
 /// This type can later be deserialized as a [`&'de str`].
 ///
 /// [`&'de str`]: str
+#[cfg(feature = "serde")]
 struct SerializeDisplay<T>(T);
 
+#[cfg(feature = "serde")]
 impl<T> Serialize for SerializeDisplay<T>
 where
     T: Display,
