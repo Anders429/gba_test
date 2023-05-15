@@ -5,7 +5,7 @@
     feature(panic_info_message)
 )]
 
-#[cfg(feature = "alloc")]
+#[cfg(any(feature = "alloc", test))]
 extern crate alloc;
 
 #[cfg(all(feature = "runner", any(target = "thumbv4t-none-eabi", doc)))]
