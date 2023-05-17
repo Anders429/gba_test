@@ -313,11 +313,11 @@ impl<'de> Deserialize<'de> for Trial<'de, &'de str> {
 
 #[cfg(test)]
 mod tests {
-    use super::SerializeDisplay;
+    use super::{Outcome, SerializeDisplay};
     use alloc::{borrow::ToOwned, vec};
-    use claims::assert_ok_eq;
-    use serde::Serialize;
-    use serde_assert::{Serializer, Token, Tokens};
+    use claims::{assert_err_eq, assert_ok_eq};
+    use serde::{de::Error as _, Deserialize, Serialize};
+    use serde_assert::{de, Deserializer, Serializer, Token, Tokens};
 
     #[test]
     fn serialize_display() {
@@ -325,6 +325,157 @@ mod tests {
         assert_ok_eq!(
             SerializeDisplay(format_args!("{} foo {}", 1, 2)).serialize(&serializer),
             Tokens(vec![Token::Str("1 foo 2".to_owned())])
+        );
+    }
+
+    #[test]
+    fn serialize_deserialize_outcome_passed() {
+        let serializer = Serializer::builder().build();
+        let tokens = assert_ok_eq!(
+            Outcome::<&str>::Passed.serialize(&serializer),
+            Tokens(vec![Token::UnitVariant {
+                name: "Outcome",
+                variant_index: 0,
+                variant: "Passed"
+            }])
+        );
+
+        let mut deserializer = Deserializer::builder().tokens(tokens).build();
+        assert_ok_eq!(
+            Outcome::<&str>::deserialize(&mut deserializer),
+            Outcome::Passed
+        );
+    }
+
+    #[test]
+    fn serialize_deserialize_outcome_failed() {
+        let serializer = Serializer::builder().build();
+        let tokens = assert_ok_eq!(
+            Outcome::Failed { message: "foo" }.serialize(&serializer),
+            Tokens(vec![
+                Token::StructVariant {
+                    name: "Outcome",
+                    variant_index: 1,
+                    variant: "Failed",
+                    len: 1
+                },
+                Token::Field("message"),
+                Token::Str("foo".to_owned()),
+                Token::StructVariantEnd
+            ])
+        );
+
+        let mut deserializer = Deserializer::builder().tokens(tokens).build();
+        assert_ok_eq!(
+            Outcome::deserialize(&mut deserializer),
+            Outcome::Failed { message: "foo" }
+        );
+    }
+
+    #[test]
+    fn serialize_deserialize_outcome_failed_display() {
+        let serializer = Serializer::builder().build();
+        let tokens = assert_ok_eq!(
+            Outcome::Failed {
+                message: format_args!("{} foo {}", 1, 2)
+            }
+            .serialize(&serializer),
+            Tokens(vec![
+                Token::StructVariant {
+                    name: "Outcome",
+                    variant_index: 1,
+                    variant: "Failed",
+                    len: 1
+                },
+                Token::Field("message"),
+                Token::Str("1 foo 2".to_owned()),
+                Token::StructVariantEnd
+            ])
+        );
+
+        let mut deserializer = Deserializer::builder().tokens(tokens).build();
+        assert_ok_eq!(
+            Outcome::deserialize(&mut deserializer),
+            Outcome::Failed { message: "1 foo 2" }
+        );
+    }
+
+    #[test]
+    fn serialize_deserialize_outcome_ignored() {
+        let serializer = Serializer::builder().build();
+        let tokens = assert_ok_eq!(
+            Outcome::<&str>::Ignored.serialize(&serializer),
+            Tokens(vec![Token::UnitVariant {
+                name: "Outcome",
+                variant_index: 2,
+                variant: "Ignored"
+            }])
+        );
+
+        let mut deserializer = Deserializer::builder().tokens(tokens).build();
+        assert_ok_eq!(
+            Outcome::<&str>::deserialize(&mut deserializer),
+            Outcome::Ignored
+        );
+    }
+
+    #[test]
+    fn deserialize_outcome_unknown_variant() {
+        let mut deserializer = Deserializer::builder()
+            .tokens(Tokens(vec![Token::UnitVariant {
+                name: "Outcome",
+                variant_index: 3,
+                variant: "Unknown",
+            }]))
+            .build();
+
+        assert_err_eq!(
+            Outcome::<&str>::deserialize(&mut deserializer),
+            de::Error::unknown_variant("Unknown", &["Passed", "Failed", "Ignored"])
+        );
+    }
+
+    #[test]
+    fn deserialize_outcome_failed_missing_message() {
+        let mut deserializer = Deserializer::builder()
+            .tokens(Tokens(vec![
+                Token::StructVariant {
+                    name: "Outcome",
+                    variant_index: 1,
+                    variant: "Failed",
+                    len: 0,
+                },
+                Token::StructVariantEnd,
+            ]))
+            .build();
+
+        assert_err_eq!(
+            Outcome::<&str>::deserialize(&mut deserializer),
+            de::Error::missing_field("message")
+        );
+    }
+
+    #[test]
+    fn deserialize_outcome_failed_duplicate_message() {
+        let mut deserializer = Deserializer::builder()
+            .tokens(Tokens(vec![
+                Token::StructVariant {
+                    name: "Outcome",
+                    variant_index: 1,
+                    variant: "Failed",
+                    len: 2,
+                },
+                Token::Field("message"),
+                Token::Str("foo".to_owned()),
+                Token::Field("message"),
+                Token::Str("bar".to_owned()),
+                Token::StructVariantEnd,
+            ]))
+            .build();
+
+        assert_err_eq!(
+            Outcome::<&str>::deserialize(&mut deserializer),
+            de::Error::duplicate_field("message")
         );
     }
 }
