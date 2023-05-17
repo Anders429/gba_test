@@ -1,7 +1,7 @@
 #![cfg(all(feature = "postcard", feature = "alloc"))]
 
 use cargo_metadata::Message;
-use gba_test::{Outcome, Status, Trial};
+use gba_test::{Outcome, Trial};
 use std::{
     env, fs,
     path::PathBuf,
@@ -63,11 +63,11 @@ fn pass() {
         std::thread::sleep(std::time::Duration::from_secs(1));
     };
 
-    let status: Status = loop {
-        if let Ok(status) = postcard::from_bytes(&output) {
-            match status {
-                Status::Running => continue,
-                _ => break status,
+    let trials: Vec<Trial<&str>> = loop {
+        if let Ok(result) = postcard::from_bytes::<Result<_, ()>>(&output) {
+            match result {
+                Ok(trials) => break trials,
+                _ => continue,
             }
         }
         std::thread::sleep(std::time::Duration::from_secs(1));
@@ -84,11 +84,11 @@ fn pass() {
 
     // Compare the output with the expected output.
     assert_eq!(
-        status,
-        Status::Completed(vec![Trial {
+        trials,
+        vec![Trial {
             name: "it_works",
             outcome: Outcome::Passed,
-        }]),
+        }],
     );
 }
 
@@ -147,11 +147,11 @@ fn ignore() {
         std::thread::sleep(std::time::Duration::from_secs(1));
     };
 
-    let status: Status = loop {
-        if let Ok(status) = postcard::from_bytes(&output) {
-            match status {
-                Status::Running => continue,
-                _ => break status,
+    let trials: Vec<Trial<&str>> = loop {
+        if let Ok(result) = postcard::from_bytes::<Result<_, ()>>(&output) {
+            match result {
+                Ok(trials) => break trials,
+                _ => continue,
             }
         }
         std::thread::sleep(std::time::Duration::from_secs(1));
@@ -168,11 +168,11 @@ fn ignore() {
 
     // Compare the output with the expected output.
     assert_eq!(
-        status,
-        Status::Completed(vec![Trial {
+        trials,
+        vec![Trial {
             name: "it_works",
             outcome: Outcome::Ignored,
-        }]),
+        }],
     );
 }
 
@@ -231,11 +231,11 @@ fn fail() {
         std::thread::sleep(std::time::Duration::from_secs(1));
     };
 
-    let status: Status = loop {
-        if let Ok(status) = postcard::from_bytes(&output) {
-            match status {
-                Status::Running => continue,
-                _ => break status,
+    let trials: Vec<Trial<&str>> = loop {
+        if let Ok(result) = postcard::from_bytes::<Result<_, ()>>(&output) {
+            match result {
+                Ok(trials) => break trials,
+                _ => continue,
             }
         }
         std::thread::sleep(std::time::Duration::from_secs(1));
@@ -252,12 +252,12 @@ fn fail() {
 
     // Compare the output with the expected output.
     assert_eq!(
-        status,
-        Status::Completed(vec![Trial {
+        trials,
+        vec![Trial {
                 name: "it_works",
                 outcome: Outcome::Failed {
                     message: "panicked at 'assertion failed: `(left == right)`\n  left: `4`,\n right: `5`', src/lib.rs:28:9",
                 },
-            }]),
+            }],
     );
 }

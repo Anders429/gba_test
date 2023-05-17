@@ -1,10 +1,14 @@
-use crate::{flavors::Sram, Ignore, Outcome, RawStatus, TestCase, Trial};
+use crate::{flavors::Sram, Ignore, Outcome, TestCase, Trial};
 use core::{fmt::Display, panic::PanicInfo, ptr};
 use serde::Serialize;
 use voladdress::{Safe, Unsafe, VolAddress};
 
 /// The current write position in SRAM.
-static mut SRAM_POS: *mut u8 = 0x0E00_0000 as *mut u8;
+///
+/// This value begins at 1 byte past the start of SRAM, as the first byte is reserved for the
+/// `Result` variant. The `Result` variant is not written until the tests have finished, which
+/// signals that the written data is now valid `postcard` data.
+static mut SRAM_POS: *mut u8 = 0x0E00_0001 as *mut u8;
 /// The start of the SRAM.
 const SRAM_START: *mut u8 = 0x0E00_0000 as *mut u8;
 
@@ -19,19 +23,21 @@ static mut TESTS: &[&dyn TestCase] = &[];
 /// The name of the current test.
 static mut TEST_NAME: &str = "";
 
-/// Write the status to SRAM.
+/// Write data at the beginning of SRAM.
 ///
-/// This will always write a single byte at the start of SRAM.
-fn write_status(status: RawStatus) -> Result<(), postcard::Error> {
-    // SAFETY: `SRAM_START` is a valid location in SRAM.
-    postcard::serialize_with_flavor(&status, unsafe { Sram::new(SRAM_START) })?;
+/// This will overwrite whatever data is already written there.
+fn write_to_sram<T>(value: T) -> Result<(), postcard::Error>
+where
+    T: Serialize,
+{
+    postcard::serialize_with_flavor(&value, unsafe { Sram::new(SRAM_START) })?;
     Ok(())
 }
 
-/// Write data to SRAM.
+/// Write data to the end of SRAM.
 ///
 /// This increments the current SRAM position, ensuring data is not overwritten on future calls.
-fn write_to_sram<T>(value: T) -> Result<(), postcard::Error>
+fn append_to_sram<T>(value: T) -> Result<(), postcard::Error>
 where
     T: Serialize,
 {
@@ -51,7 +57,7 @@ where
     FailedMessage: Copy + Display,
 {
     // TODO: Remove this unwrap. We shouldn't be panicking in this code!
-    write_to_sram(Trial {
+    append_to_sram(Trial {
         // SAFETY: `TEST_NAME` is only ever accessed on the main thread.
         name: unsafe { TEST_NAME },
         outcome,
@@ -82,7 +88,7 @@ fn run_tests() -> ! {
     }
 
     // TODO: Remove this unwrap.
-    write_status(RawStatus::Completed).unwrap();
+    write_to_sram(Ok::<(), ()>(())).unwrap();
 
     unsafe {
         core::arch::asm!("swi #0x03",);
@@ -110,19 +116,15 @@ pub fn runner(tests: &'static [&'static dyn TestCase]) {
     unsafe {
         TESTS = tests;
         // It seems this value must be reinitialized, otherwise it is always nullptr.
-        SRAM_POS = 0x0E00_0000 as *mut u8;
+        SRAM_POS = 0x0E00_0001 as *mut u8;
 
         // Enable writes to SRAM.
         WAITCNT.write(3);
     }
 
-    // Write the current status.
-    // TODO: Remove this unwrap.
-    write_to_sram(RawStatus::Running).unwrap();
-
     // Write the number of expected results.
     // TODO: Remove this unwrap.
-    write_to_sram(tests.len()).unwrap();
+    append_to_sram(tests.len()).unwrap();
 
     run_tests();
 }
