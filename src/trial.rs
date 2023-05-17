@@ -283,6 +283,41 @@ impl<'de> Deserialize<'de> for Trial<'de, &'de str> {
     where
         D: Deserializer<'de>,
     {
+        enum Field {
+            Name,
+            Outcome,
+        }
+
+        impl<'de> Deserialize<'de> for Field {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                struct FieldVisitor;
+
+                impl<'de> Visitor<'de> for FieldVisitor {
+                    type Value = Field;
+
+                    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                        formatter.write_str("`name` or `outcome`")
+                    }
+
+                    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+                    where
+                        E: de::Error,
+                    {
+                        match v {
+                            "name" => Ok(Field::Name),
+                            "outcome" => Ok(Field::Outcome),
+                            _ => Err(E::unknown_field(v, FIELDS)),
+                        }
+                    }
+                }
+
+                deserializer.deserialize_identifier(FieldVisitor)
+            }
+        }
+
         struct TrialVisitor;
 
         impl<'de> Visitor<'de> for TrialVisitor {
@@ -305,15 +340,47 @@ impl<'de> Deserialize<'de> for Trial<'de, &'de str> {
 
                 Ok(Trial { name, outcome })
             }
+
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: MapAccess<'de>,
+            {
+                let mut name = None;
+                let mut outcome = None;
+
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        Field::Name => {
+                            if name.is_some() {
+                                return Err(A::Error::duplicate_field("name"));
+                            }
+                            name = Some(map.next_value()?);
+                        }
+                        Field::Outcome => {
+                            if outcome.is_some() {
+                                return Err(A::Error::duplicate_field("outcome"));
+                            }
+                            outcome = Some(map.next_value()?);
+                        }
+                    }
+                }
+
+                Ok(Trial {
+                    name: name.ok_or_else(|| A::Error::missing_field("name"))?,
+                    outcome: outcome.ok_or_else(|| A::Error::missing_field("outcome"))?,
+                })
+            }
         }
 
-        deserializer.deserialize_struct("Trial", &["name", "outcome"], TrialVisitor)
+        const FIELDS: &[&str] = &["name", "outcome"];
+
+        deserializer.deserialize_struct("Trial", FIELDS, TrialVisitor)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Outcome, SerializeDisplay};
+    use super::{Outcome, SerializeDisplay, Trial};
     use alloc::{borrow::ToOwned, vec};
     use claims::{assert_err_eq, assert_ok_eq};
     use serde::{de::Error as _, Deserialize, Serialize};
@@ -476,6 +543,188 @@ mod tests {
         assert_err_eq!(
             Outcome::<&str>::deserialize(&mut deserializer),
             de::Error::duplicate_field("message")
+        );
+    }
+
+    #[test]
+    fn serialize_deserialize_trial() {
+        let serializer = Serializer::builder().build();
+        let tokens = assert_ok_eq!(
+            Trial {
+                name: "foo",
+                outcome: Outcome::<&str>::Passed,
+            }
+            .serialize(&serializer),
+            Tokens(vec![
+                Token::Struct {
+                    name: "Trial",
+                    len: 2
+                },
+                Token::Field("name"),
+                Token::Str("foo".to_owned()),
+                Token::Field("outcome"),
+                Token::UnitVariant {
+                    name: "Outcome",
+                    variant_index: 0,
+                    variant: "Passed"
+                },
+                Token::StructEnd
+            ])
+        );
+
+        let mut deserializer = Deserializer::builder().tokens(tokens).build();
+        assert_ok_eq!(
+            Trial::deserialize(&mut deserializer),
+            Trial {
+                name: "foo",
+                outcome: Outcome::<&str>::Passed,
+            }
+        );
+    }
+
+    #[test]
+    fn deserialize_trial_different_order() {
+        let mut deserializer = Deserializer::builder()
+            .tokens(Tokens(vec![
+                Token::Struct {
+                    name: "Trial",
+                    len: 2,
+                },
+                Token::Field("outcome"),
+                Token::UnitVariant {
+                    name: "Outcome",
+                    variant_index: 0,
+                    variant: "Passed",
+                },
+                Token::Field("name"),
+                Token::Str("foo".to_owned()),
+                Token::StructEnd,
+            ]))
+            .build();
+        assert_ok_eq!(
+            Trial::deserialize(&mut deserializer),
+            Trial {
+                name: "foo",
+                outcome: Outcome::<&str>::Passed,
+            }
+        );
+    }
+
+    #[test]
+    fn deserialize_trial_unknown_field() {
+        let mut deserializer = Deserializer::builder()
+            .tokens(Tokens(vec![
+                Token::Struct {
+                    name: "Trial",
+                    len: 1,
+                },
+                Token::Field("unknown"),
+                Token::StructEnd,
+            ]))
+            .build();
+        assert_err_eq!(
+            Trial::deserialize(&mut deserializer),
+            de::Error::unknown_field("unknown", &["name", "outcome"])
+        );
+    }
+
+    #[test]
+    fn deserialize_trial_missing_field_name() {
+        let mut deserializer = Deserializer::builder()
+            .tokens(Tokens(vec![
+                Token::Struct {
+                    name: "Trial",
+                    len: 1,
+                },
+                Token::Field("outcome"),
+                Token::UnitVariant {
+                    name: "Outcome",
+                    variant_index: 0,
+                    variant: "Passed",
+                },
+                Token::StructEnd,
+            ]))
+            .build();
+        assert_err_eq!(
+            Trial::deserialize(&mut deserializer),
+            de::Error::missing_field("name")
+        );
+    }
+
+    #[test]
+    fn deserialize_trial_missing_field_outcome() {
+        let mut deserializer = Deserializer::builder()
+            .tokens(Tokens(vec![
+                Token::Struct {
+                    name: "Trial",
+                    len: 1,
+                },
+                Token::Field("name"),
+                Token::Str("foo".to_owned()),
+                Token::StructEnd,
+            ]))
+            .build();
+        assert_err_eq!(
+            Trial::deserialize(&mut deserializer),
+            de::Error::missing_field("outcome")
+        );
+    }
+
+    #[test]
+    fn deserialize_trial_duplicate_field_name() {
+        let mut deserializer = Deserializer::builder()
+            .tokens(Tokens(vec![
+                Token::Struct {
+                    name: "Trial",
+                    len: 3,
+                },
+                Token::Field("name"),
+                Token::Str("foo".to_owned()),
+                Token::Field("outcome"),
+                Token::UnitVariant {
+                    name: "Outcome",
+                    variant_index: 0,
+                    variant: "Passed",
+                },
+                Token::Field("name"),
+                Token::Str("bar".to_owned()),
+                Token::StructEnd,
+            ]))
+            .build();
+        assert_err_eq!(
+            Trial::deserialize(&mut deserializer),
+            de::Error::duplicate_field("name")
+        );
+    }
+
+    #[test]
+    fn deserialize_trial_duplicate_field_outcome() {
+        let mut deserializer = Deserializer::builder()
+            .tokens(Tokens(vec![
+                Token::Struct {
+                    name: "Trial",
+                    len: 3,
+                },
+                Token::Field("outcome"),
+                Token::UnitVariant {
+                    name: "Outcome",
+                    variant_index: 0,
+                    variant: "Passed",
+                },
+                Token::Field("name"),
+                Token::Str("foo".to_owned()),
+                Token::Field("outcome"),
+                Token::UnitVariant {
+                    name: "Outcome",
+                    variant_index: 2,
+                    variant: "Ignored",
+                },
+                Token::StructEnd,
+            ]))
+            .build();
+        assert_err_eq!(
+            Trial::deserialize(&mut deserializer),
+            de::Error::duplicate_field("outcome")
         );
     }
 }
