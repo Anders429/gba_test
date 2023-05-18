@@ -64,7 +64,7 @@ fn pass() {
     };
 
     let trials: Vec<Trial<&str>> = loop {
-        if let Ok(result) = postcard::from_bytes::<Result<_, ()>>(&output) {
+        if let Ok(result) = postcard::from_bytes::<Result<_, &str>>(&output) {
             match result {
                 Ok(trials) => break trials,
                 _ => continue,
@@ -148,7 +148,7 @@ fn ignore() {
     };
 
     let trials: Vec<Trial<&str>> = loop {
-        if let Ok(result) = postcard::from_bytes::<Result<_, ()>>(&output) {
+        if let Ok(result) = postcard::from_bytes::<Result<_, &str>>(&output) {
             match result {
                 Ok(trials) => break trials,
                 _ => continue,
@@ -232,7 +232,7 @@ fn fail() {
     };
 
     let trials: Vec<Trial<&str>> = loop {
-        if let Ok(result) = postcard::from_bytes::<Result<_, ()>>(&output) {
+        if let Ok(result) = postcard::from_bytes::<Result<_, &str>>(&output) {
             match result {
                 Ok(trials) => break trials,
                 _ => continue,

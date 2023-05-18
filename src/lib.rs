@@ -11,6 +11,7 @@ extern crate alloc;
 #[cfg(all(feature = "runner", any(target = "thumbv4t-none-eabi", doc)))]
 pub(crate) mod flavors;
 
+mod display;
 #[cfg(all(feature = "runner", any(target = "thumbv4t-none-eabi", doc)))]
 mod runner;
 mod test_case;

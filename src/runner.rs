@@ -4,7 +4,7 @@
 //! code here should only ever be run on a Game Boy Advance, and the safety considerations do not
 //! apply for other targets.
 
-use crate::{flavors::Sram, Ignore, Outcome, TestCase, Trial};
+use crate::{display::SerializeDisplay, flavors::Sram, Ignore, Outcome, TestCase, Trial};
 use core::{fmt::Display, panic::PanicInfo, ptr};
 use serde::Serialize;
 use voladdress::{Safe, Unsafe, VolAddress};
@@ -57,18 +57,34 @@ where
     Ok(())
 }
 
+/// Handle an error that occurred during test execution.
+///
+/// We can't panic in this context, as that would cause the code to loop until the stack overflows.
+/// Instead, this function attempts to write the error to SRAM.
+fn handle_error<E>(error: E)
+where
+    E: Display,
+{
+    // If writing to SRAM fails here, there is not much else that can be done. Unwrapping the
+    // result would lead to a panic loop, causing a stack overflow, so we simply ignore the error
+    // if there is one.
+    #[allow(unused_must_use)]
+    {
+        write_to_sram(Result < (), _ > ::Err(SerializeDisplay(error)));
+    }
+}
+
 /// Saves the serialized test result to SRAM.
 fn report_test_result<FailedMessage>(outcome: Outcome<FailedMessage>)
 where
     FailedMessage: Copy + Display,
 {
-    // TODO: Remove this unwrap. We shouldn't be panicking in this code!
     append_to_sram(Trial {
         // SAFETY: `TEST_NAME` is only ever accessed on the main thread.
         name: unsafe { TEST_NAME },
         outcome,
     })
-    .unwrap();
+    .unwrap_or_else(handle_error);
 }
 
 /// Runs the remaining tests.
@@ -93,8 +109,7 @@ fn run_tests() -> ! {
         }
     }
 
-    // TODO: Remove this unwrap.
-    write_to_sram(Ok::<(), ()>(())).unwrap();
+    write_to_sram(Ok::<(), ()>(())).unwrap_or_else(handle_error);
 
     unsafe {
         core::arch::asm!("swi #0x03",);
@@ -129,8 +144,7 @@ pub fn runner(tests: &'static [&'static dyn TestCase]) {
     }
 
     // Write the number of expected results.
-    // TODO: Remove this unwrap.
-    append_to_sram(tests.len()).unwrap();
+    append_to_sram(tests.len()).unwrap_or_else(handle_error);
 
     run_tests();
 }
