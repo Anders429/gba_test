@@ -1,3 +1,9 @@
+//! Logic for running tests on a Game Boy Advance.
+//!
+//! This module contains the actual test runner along with its associated utility functions. The
+//! code here should only ever be run on a Game Boy Advance, and the safety considerations do not
+//! apply for other targets.
+
 use crate::{flavors::Sram, Ignore, Outcome, TestCase, Trial};
 use core::{fmt::Display, panic::PanicInfo, ptr};
 use serde::Serialize;
