@@ -70,7 +70,7 @@ where
     // if there is one.
     #[allow(unused_must_use)]
     {
-        write_to_sram(Result < (), _ > ::Err(SerializeDisplay(error)));
+        write_to_sram(Result::<(), _>::Err(SerializeDisplay(error)));
     }
 }
 
