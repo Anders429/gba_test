@@ -63,6 +63,7 @@ fn pass() {
         std::thread::sleep(std::time::Duration::from_secs(1));
     };
 
+    let mut timeout = 0;
     let trials: Vec<Trial<&str>> = loop {
         if let Ok(result) = postcard::from_bytes::<Result<_, &str>>(&output) {
             match result {
@@ -71,6 +72,10 @@ fn pass() {
             }
         }
         std::thread::sleep(std::time::Duration::from_secs(1));
+        timeout += 1;
+        if timeout >= 30 {
+            panic!("did not execute successfully");
+        }
     };
 
     // Clean up.
@@ -147,6 +152,7 @@ fn ignore() {
         std::thread::sleep(std::time::Duration::from_secs(1));
     };
 
+    let mut timeout = 0;
     let trials: Vec<Trial<&str>> = loop {
         if let Ok(result) = postcard::from_bytes::<Result<_, &str>>(&output) {
             match result {
@@ -155,6 +161,10 @@ fn ignore() {
             }
         }
         std::thread::sleep(std::time::Duration::from_secs(1));
+        timeout += 1;
+        if timeout >= 30 {
+            panic!("did not execute successfully");
+        }
     };
 
     // Clean up.
@@ -231,6 +241,7 @@ fn fail() {
         std::thread::sleep(std::time::Duration::from_secs(1));
     };
 
+    let mut timeout = 0;
     let trials: Vec<Trial<&str>> = loop {
         if let Ok(result) = postcard::from_bytes::<Result<_, &str>>(&output) {
             match result {
@@ -239,6 +250,10 @@ fn fail() {
             }
         }
         std::thread::sleep(std::time::Duration::from_secs(1));
+        timeout += 1;
+        if timeout >= 30 {
+            panic!("did not execute successfully");
+        }
     };
 
     // Clean up.
