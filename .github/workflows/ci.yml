@@ -19,7 +19,8 @@ jobs:
     - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: nightly-2023-03-24
-        targets: thumbv4t-none-eabi
+        components: rust-src
+    - run: rustup target add thumbv4t-none-eabi --toolchain nightly-2023-03-24
     - run: sudo apt-get update
     - run: sudo apt-get install binutils-arm-none-eabi
     - run: sudo apt-get install mgba-qt
