@@ -18,7 +18,6 @@ jobs:
     - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: nightly-2023-02-02
-        components: rust-src
         targets: thumbv4t-none-eabi
     - run: sudo apt-get update
     - run: sudo apt-get install binutils-arm-none-eabi
