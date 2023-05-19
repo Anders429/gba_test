@@ -1,5 +1,6 @@
 //! Types representing test results.
 
+#[cfg(feature = "serde")]
 use crate::display::SerializeDisplay;
 use core::{fmt, fmt::Display, str};
 #[cfg(feature = "serde")]
