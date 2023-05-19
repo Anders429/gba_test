@@ -18,6 +18,7 @@ jobs:
     - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: nightly-2023-03-24
+        components: rust-src
     - run: sudo apt-get update
     - run: sudo apt-get install binutils-arm-none-eabi
     - run: sudo apt-get install mgba-qt
