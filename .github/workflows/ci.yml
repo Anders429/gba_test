@@ -25,4 +25,4 @@ jobs:
     - run: alias mgba="mgba-qt"
     - run: curl -LsSf https://github.com/taiki-e/cargo-hack/releases/latest/download/cargo-hack-x86_64-unknown-linux-gnu.tar.gz | tar xzf - -C ~/.cargo/bin
     # - run: cargo hack test --feature-powerset
-    - run: cargo test --all-features --workspace
+    - run: cargo test --all-features --workspace && ls -R .
