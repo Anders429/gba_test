@@ -4,16 +4,13 @@
 //! code here should only ever be run on a Game Boy Advance, and the safety considerations do not
 //! apply for other targets.
 
-use crate::{TestCase, test_case::Ignore, Outcome, Outcomes, font};
+use crate::{TestCase, test_case::Ignore, Outcome, Outcomes, ui};
 use core::{arch::asm, fmt::Display, ptr::addr_of, panic::PanicInfo};
 
 // TODO: Make these more type-safe.
-const DISPCNT: *mut u16 = 0x0400_0000 as *mut u16;
 const DISPSTAT: *mut u16 = 0x0400_0004 as *mut u16;
-const BG0CNT: *mut u16 = 0x0400_0008 as *mut u16;
 const IME: *mut bool = 0x0400_0208 as *mut bool;
 const IE: *mut u16 = 0x0400_0200 as *mut u16;
-const TEXT_ENTRIES: *mut u16 = 0x0600_4000 as *mut u16;
 
 /// The index of the next test to be run.
 #[link_section = ".noinit"]
@@ -27,20 +24,6 @@ fn store_outcome<Data>(outcome: Outcome<Data>) where Data: Display {
     if let Some(outcomes) = unsafe {OUTCOMES.as_mut()} {
         outcomes.push_outcome(outcome);
     }
-}
-
-/// Waits until a new v-blank interrupt occurs.
-#[instruction_set(arm::t32)]
-pub fn wait_for_vblank() {
-    unsafe {
-        asm! {
-            "swi #0x05",
-            out("r0") _,
-            out("r1") _,
-            out("r3") _,
-            options(preserves_flags),
-        }
-    };
 }
 
 /// Perform a soft reset on the GBA.
@@ -149,49 +132,6 @@ pub fn runner(tests: &'static [&'static dyn TestCase]) {
     // with the `return_value` as the program's exit code if the emulator has been configured to
     // listen for SWI 0x27 with the exit code on `r0`.
     report_result(unsafe {OUTCOMES.as_ref().unwrap().iter_outcomes().any(|outcome| matches!(outcome, Outcome::Failed(_)))} as usize);
-    
-    // Enable BG0;
-    wait_for_vblank();
-    unsafe {
-        BG0CNT.write_volatile(8 << 8);
-        DISPCNT.write_volatile(256);
-    }
-    font::load();
 
-    // Display outcomes.
-    for (row, (test, outcome)) in tests.iter().zip(unsafe {OUTCOMES.as_ref().unwrap().iter_outcomes()}).enumerate() {
-        log::info!("{}: {:?}", test.name(), outcome);
-
-        let palette = match outcome {
-            Outcome::Passed => 1,
-            Outcome::Ignored => 2,
-            Outcome::Failed(_) => 3,
-        };
-        // Write the test results.
-        // We will first naively do this for every single test without worrying about scrolling.
-        // This naturally will not work with larger amounts of tests, since they won't all fit on the screen.
-        let mut cursor = unsafe {TEXT_ENTRIES.byte_add(0x40 * row)};
-        for character in test.name().chars().chain(": ".chars()) {
-            let ascii: u32 = character.into();
-            // Only account for basic characters.
-            if ascii < 128 {
-                unsafe {
-                    cursor.write_volatile((ascii) as u16);
-                    cursor = cursor.add(1);
-                }
-            }
-        }
-        for character in outcome.as_str().chars() {
-            let ascii: u32 = character.into();
-            // Only account for basic characters.
-            if ascii < 128 {
-                unsafe {
-                    cursor.write_volatile((ascii | (palette << 12)) as u16);
-                    cursor = cursor.add(1);
-                }
-            }
-        }
-    }
-
-    loop {}
+    ui::run(tests, unsafe {OUTCOMES.as_ref().unwrap()})
 }

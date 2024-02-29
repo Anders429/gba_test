@@ -6,6 +6,7 @@ mod outcome;
 mod runner;
 mod runtime;
 mod test_case;
+mod ui;
 
 #[cfg(feature = "macros")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "macros")))]
