@@ -1,0 +1,5 @@
+error: expected `fn`
+ --> tests/trybuild/not_a_function.rs:4:7
+  |
+4 | const FOO: usize = 0;
+  |       ^^^

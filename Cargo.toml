@@ -1,0 +1,38 @@
+[workspace]
+members = [
+    "macros",
+]
+exclude = [
+    "tests/"
+]
+
+[package]
+name = "gba_test"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata.docs.rs]
+# To build locally:
+# RUSTDOCFLAGS="--cfg doc_cfg" cargo +nightly doc --all-features --no-deps --open
+all-features = true
+rustdoc-args = ["--cfg", "doc_cfg"]
+
+[profile.dev]
+opt-level = 3
+debug = true
+
+[profile.release]
+lto = true
+
+[dependencies]
+gba_test_macros = {version = "0.1.0", path = "macros/", optional = true}
+log = "0.4.20"
+mgba_log = "0.2.1"
+
+[dev-dependencies]
+cargo_metadata = "0.15.4"
+claims = "0.7.1"
+
+[features]
+default = ["macros"]
+macros = ["dep:gba_test_macros"]
