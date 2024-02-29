@@ -1,4 +1,6 @@
-use crate::{font, outcome::{Outcome, Outcomes}, test_case::TestCase};
+mod font;
+
+use crate::{outcome::{Outcome, Outcomes}, test_case::TestCase};
 use core::arch::asm;
 
 const DISPCNT: *mut u16 = 0x0400_0000 as *mut u16;

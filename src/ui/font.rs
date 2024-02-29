@@ -21,11 +21,11 @@ macro_rules! include_aligned_bytes {
 /// Loads the font into VRAM.
 pub(crate) fn load() {
     // Load palettes.
-    unsafe {BG_PALETTE.write_volatile(include_aligned_bytes!("../data/font.pal").0);}
+    unsafe {BG_PALETTE.write_volatile(include_aligned_bytes!("../../data/font.pal").0);}
 
     // Load font tiles.
     let mut charblock = CHARBLOCK0;
-    for character in include_aligned_bytes!("../data/font8x8_basic.fnt").0.chunks(8) {
+    for character in include_aligned_bytes!("../../data/font8x8_basic.fnt").0.chunks(8) {
         let mut converted = [0u32; 8];
         for (index, byte) in character.iter().enumerate() {
             for bit in (0..8).rev() {

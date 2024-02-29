@@ -1,7 +1,6 @@
 #![no_std]
 #![feature(asm_const, naked_functions)]
 
-mod font;
 mod outcome;
 mod runner;
 mod runtime;
