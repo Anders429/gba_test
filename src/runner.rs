@@ -79,6 +79,7 @@ fn report_result(result: usize) {
 /// continue being run after the current test panics.
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
+    // TODO: Need to handle when this is called outside of the test runner.
     log::info!("test failed");
     store_outcome(Outcome::Failed(info));
 

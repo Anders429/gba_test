@@ -16,6 +16,7 @@ use cursor::Cursor;
 const DISPCNT: *mut u16 = 0x0400_0000 as *mut u16;
 const BG0CNT: *mut u16 = 0x0400_0008 as *mut u16;
 const BG1CNT: *mut u16 = 0x0400_000A as *mut u16;
+const KEYINPUT: *mut u16 = 0x0400_0130 as *mut u16;
 const TEXT_ENTRIES: *mut u16 = 0x0600_4000 as *mut u16;
 const UI_ENTRIES: *mut u16 = 0x0600_C000 as *mut u16;
 const CHARBLOCK2: *mut [u32; 8] = 0x0600_8000 as *mut [u32; 8];
@@ -69,7 +70,7 @@ fn load_ui_tiles() {
     }
 }
 
-fn draw_test_outcomes<'a, TestOutcomes>(test_outcomes: TestOutcomes) where TestOutcomes: Iterator<Item = (&'a &'a dyn TestCase, Outcome<&'static str>)> {
+fn draw_test_outcomes<'a, TestOutcomes>(test_outcomes: TestOutcomes, index: usize) where TestOutcomes: Iterator<Item = (&'a &'a dyn TestCase, Outcome<&'static str>)> {
     wait_for_vblank();
     // Draw UI.
     for row in 0..2 {
@@ -78,6 +79,25 @@ fn draw_test_outcomes<'a, TestOutcomes>(test_outcomes: TestOutcomes) where TestO
             unsafe {
                 cursor.write_volatile(4 << 12 | 1);
                 cursor = cursor.add(1);
+            }
+        }
+    }
+    // Highlight selected.
+    for row in 0..18 {
+        let mut cursor = unsafe {UI_ENTRIES.byte_add(0x40 * (row + 2))};
+        if index == row {
+            for _ in 0..30 {
+                unsafe {
+                    cursor.write_volatile(4 << 12 | 1);
+                    cursor = cursor.add(1);
+                }
+            }
+        } else {
+            for _ in 0..30 {
+                unsafe {
+                    cursor.write_volatile(0);
+                    cursor = cursor.add(1);
+                }
             }
         }
     }
@@ -110,11 +130,28 @@ pub(crate) fn run(tests: &[&dyn TestCase], outcomes: &Outcomes) -> ! {
     load_ui_tiles();
 
     // Test selection.
+    let mut index = 0;
     loop {
         // Draw the tests that should currently be viewable.
-        draw_test_outcomes(tests.iter().zip(outcomes.iter_outcomes()));
+        draw_test_outcomes(tests.iter().zip(outcomes.iter_outcomes()), index);
         // Wait until input is received from the user.
-        loop {}
+        loop {
+            wait_for_vblank();
+            let keys = unsafe {KEYINPUT.read_volatile()};
+            log::info!("keys: {}", keys);
+            if keys == 0b0000_0011_1011_1111 {
+                log::info!("Up pressed!");
+                // Up
+                index -= 1;
+                break;
+            }
+            if keys == 0b0000_0011_0111_1111 {
+                // Down
+                log::info!("Down pressed!");
+                index += 1;
+                break;
+            }
+        }
         // Then redraw the next screen.
     }
 }
