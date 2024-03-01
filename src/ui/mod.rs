@@ -70,6 +70,7 @@ fn load_ui_tiles() {
     }
 }
 
+// TODO: Make this a `Selection` struct. Should contain its index, the index within the shown stuff, the pointer to the top-most shown element, etc.
 fn draw_test_outcomes<'a, TestOutcomes>(test_outcomes: TestOutcomes, index: usize) where TestOutcomes: Iterator<Item = (&'a &'a dyn TestCase, Outcome<&'static str>)> {
     wait_for_vblank();
     // Draw UI.
@@ -102,6 +103,13 @@ fn draw_test_outcomes<'a, TestOutcomes>(test_outcomes: TestOutcomes, index: usiz
         }
     }
 
+    // Clear previous outcome text.
+    for y in 0..20 {
+        for x in 0..30 {
+            unsafe {TEXT_ENTRIES.add(0x20 * y + x).write_volatile(0);}
+        }
+    }
+
     // Write outcome text.
     let mut cursor = unsafe {Cursor::new(TEXT_ENTRIES)};
     write!(cursor, "  All  Failed Passed Ignored\n(####) (####) (####) (####)");
@@ -119,6 +127,31 @@ fn draw_test_outcomes<'a, TestOutcomes>(test_outcomes: TestOutcomes, index: usiz
     }
 }
 
+enum Page {
+    All,
+    Failed,
+    Passed,
+    Ignored,
+}
+
+impl Page {
+    fn increment(self) -> Self {
+        match self {
+            Self::All => Self::Failed,
+            Self::Failed => Self::Passed,
+            _ => Self::Ignored,
+        }
+    }
+
+    fn decrement(self) -> Self {
+        match self {
+            Self::Passed => Self::Failed,
+            Self::Ignored => Self::Passed,
+            _ => Self::All,
+        }
+    }
+}
+
 pub(crate) fn run(tests: &[&dyn TestCase], outcomes: &Outcomes) -> ! {
     // Enable BG0 and BG1.
     unsafe {
@@ -131,27 +164,51 @@ pub(crate) fn run(tests: &[&dyn TestCase], outcomes: &Outcomes) -> ! {
 
     // Test selection.
     let mut index = 0;
+    let mut page = Page::All;
     loop {
         // Draw the tests that should currently be viewable.
-        draw_test_outcomes(tests.iter().zip(outcomes.iter_outcomes()), index);
+        match page {
+            Page::All => draw_test_outcomes(tests.iter().zip(outcomes.iter_outcomes()),index
+        ),
+            Page::Failed => draw_test_outcomes(tests.iter().zip(outcomes.iter_outcomes()).filter(|(_, outcome)| matches!(outcome, Outcome::Failed(_))),index
+        ),
+            Page::Passed => draw_test_outcomes(tests.iter().zip(outcomes.iter_outcomes()).filter(|(_, outcome)| matches!(outcome, Outcome::Passed)),index
+        ),
+            Page::Ignored => draw_test_outcomes(tests.iter().zip(outcomes.iter_outcomes()).filter(|(_, outcome)| matches!(outcome, Outcome::Ignored)),index
+        ),
+        }
         // Wait until input is received from the user.
         loop {
             wait_for_vblank();
             let keys = unsafe {KEYINPUT.read_volatile()};
-            log::info!("keys: {}", keys);
             if keys == 0b0000_0011_1011_1111 {
-                log::info!("Up pressed!");
                 // Up
-                index -= 1;
+                if index > 0 {
+                    index -= 1;
+                }
                 break;
             }
             if keys == 0b0000_0011_0111_1111 {
                 // Down
-                log::info!("Down pressed!");
-                index += 1;
+                if index < 17 {
+                    index += 1;
+                }
                 break;
             }
+            if keys == 0b0000_0010_1111_1111 {
+                // R
+                page = page.increment();
+                break;
+            }
+            if keys == 0b0000_0001_1111_1111 {
+                // L
+                page = page.decrement();
+                break;
+            }
+            if keys == 0b0000_0011_1111_1110 {
+                // A
+                log::info!("Selected: {}", index);
+            }
         }
-        // Then redraw the next screen.
     }
 }
