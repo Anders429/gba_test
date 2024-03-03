@@ -190,7 +190,7 @@ pub(crate) trait Filter {
 pub(crate) struct All;
 
 impl Filter for All {
-    fn filter(outcome: &Outcome<&'static str>) -> bool {
+    fn filter(_outcome: &Outcome<&'static str>) -> bool {
         true
     }
 }
@@ -229,6 +229,9 @@ pub(crate) struct Window<Filter, const SIZE: usize> {
     length: usize,
     index: usize,
 
+    filtered_length: usize,
+    filtered_index: usize,
+
     filter: PhantomData<Filter>,
 }
 
@@ -257,9 +260,7 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
     }
 
     fn next_unfiltered(&mut self) -> Option<(&'static dyn TestCase, Outcome<&'static str>)> {
-        log::info!("index: {}", self.index);
-        if self.index == self.length.saturating_sub(SIZE) {
-            log::info!("stopped");
+        if self.filtered_index == self.filtered_length.saturating_sub(SIZE) {
             return None;
         }
 
@@ -284,7 +285,7 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
     }
 
     fn prev_unfiltered(&mut self) -> Option<(&'static dyn TestCase, Outcome<&'static str>)> {
-        if self.index == 0 {
+        if self.filtered_index == 0 {
             return None;
         }
 
@@ -331,6 +332,7 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> where Filter: self::Filter 
                 index += 1;
             }
             unfiltered_index += 1;
+            unsafe {outcomes = outcomes.add(1);}
         }
         error_messages
     }
@@ -344,6 +346,9 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> where Filter: self::Filter 
 
             length: tests.len(),
             index: 0,
+            
+            filtered_length: length,
+            filtered_index: 0,
 
             filter: PhantomData,
         }
@@ -354,6 +359,7 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> where Filter: self::Filter 
 
         while let Some((test_case, outcome)) = self.next_unfiltered() {
             if Filter::filter(&outcome) {
+                self.filtered_index += 1;
                 return Some((test_case, outcome));
             }
         }
@@ -368,6 +374,7 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> where Filter: self::Filter 
 
         while let Some((test_case, outcome)) = self.prev_unfiltered() {
             if Filter::filter(&outcome) {
+                self.filtered_index -= 1;
                 return Some((test_case, outcome));
             }
         }
@@ -400,6 +407,9 @@ impl<Filter, const SIZE: usize> Clone for Window<Filter, SIZE> {
 
             length: self.length,
             index: self.index,
+
+            filtered_length: self.filtered_length,
+            filtered_index: self.filtered_index,
 
             filter: PhantomData,
         }
