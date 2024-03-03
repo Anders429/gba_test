@@ -9,7 +9,7 @@ macro_rules! include_aligned_bytes {
 mod cursor;
 mod font;
 
-use crate::{outcome::{Outcome, Outcomes}, test_case::TestCase};
+use crate::{outcome, outcome::{Outcome, Outcomes}, test_case::TestCase};
 use core::{arch::asm, fmt::Write};
 use cursor::Cursor;
 
@@ -71,7 +71,7 @@ fn load_ui_tiles() {
 }
 
 // TODO: Make this a `Selection` struct. Should contain its index, the index within the shown stuff, the pointer to the top-most shown element, etc.
-fn draw_test_outcomes<'a, TestOutcomes>(test_outcomes: TestOutcomes, index: usize) where TestOutcomes: Iterator<Item = (&'a &'a dyn TestCase, Outcome<&'static str>)> {
+fn draw_test_outcomes<'a, TestOutcomes>(test_outcomes: TestOutcomes, index: usize, lengths: [usize; 4]) where TestOutcomes: Iterator<Item = (&'a dyn TestCase, Outcome<&'static str>)> {
     wait_for_vblank();
     // Draw UI.
     for row in 0..2 {
@@ -112,7 +112,10 @@ fn draw_test_outcomes<'a, TestOutcomes>(test_outcomes: TestOutcomes, index: usiz
 
     // Write outcome text.
     let mut cursor = unsafe {Cursor::new(TEXT_ENTRIES)};
-    write!(cursor, "  All  Failed Passed Ignored\n(####) (####) (####) (####)");
+    write!(cursor, "  All  Failed Passed Ignored\n");
+    for length in lengths {
+        write!(cursor, "({:^4}) ", length);
+    }
     for (test, outcome) in test_outcomes.take(18) {
         let palette = match outcome {
             Outcome::Passed => 1,
@@ -152,7 +155,7 @@ impl Page {
     }
 }
 
-pub(crate) fn run(tests: &[&dyn TestCase], outcomes: &Outcomes) -> ! {
+pub(crate) fn run(tests: &'static [&'static dyn TestCase], outcomes: &Outcomes) -> ! {
     // Enable BG0 and BG1.
     unsafe {
         BG0CNT.write_volatile(8 << 8);
@@ -163,19 +166,27 @@ pub(crate) fn run(tests: &[&dyn TestCase], outcomes: &Outcomes) -> ! {
     load_ui_tiles();
 
     // Test selection.
-    let mut index = 0;
     let mut page = Page::All;
+    let all_length = tests.len();
+    let failed_length = outcomes.iter_outcomes().filter(|outcome| matches!(outcome, Outcome::Failed(_))).count();
+    let passed_length = outcomes.iter_outcomes().filter(|outcome| matches!(outcome, Outcome::Passed)).count();
+    let ignored_length = outcomes.iter_outcomes().filter(|outcome| matches!(outcome, Outcome::Ignored)).count();
+    let lengths = [all_length, failed_length, passed_length, ignored_length];
+    let mut all_window = outcome::Window::<outcome::All, 18>::new(tests, outcomes, all_length);
+    let mut failed_window = outcome::Window::<outcome::Failed, 18>::new(tests, outcomes, failed_length);
+    let mut passed_window = outcome::Window::<outcome::Passed, 18>::new(tests, outcomes, passed_length);
+    let mut ignored_window = outcome::Window::<outcome::Ignored, 18>::new(tests, outcomes, ignored_length);
+    let mut all_index = 0;
+    let mut failed_index = 0;
+    let mut passed_index = 0;
+    let mut ignored_index = 0;
     loop {
         // Draw the tests that should currently be viewable.
         match page {
-            Page::All => draw_test_outcomes(tests.iter().zip(outcomes.iter_outcomes()),index
-        ),
-            Page::Failed => draw_test_outcomes(tests.iter().zip(outcomes.iter_outcomes()).filter(|(_, outcome)| matches!(outcome, Outcome::Failed(_))),index
-        ),
-            Page::Passed => draw_test_outcomes(tests.iter().zip(outcomes.iter_outcomes()).filter(|(_, outcome)| matches!(outcome, Outcome::Passed)),index
-        ),
-            Page::Ignored => draw_test_outcomes(tests.iter().zip(outcomes.iter_outcomes()).filter(|(_, outcome)| matches!(outcome, Outcome::Ignored)),index
-        ),
+            Page::All => draw_test_outcomes(all_window.iter(),all_index, lengths),
+            Page::Failed => draw_test_outcomes(failed_window.iter(),failed_index, lengths),
+            Page::Passed => draw_test_outcomes(passed_window.iter(),passed_index, lengths),
+            Page::Ignored => draw_test_outcomes(ignored_window.iter(),ignored_index, lengths),
         }
         // Wait until input is received from the user.
         loop {
@@ -183,15 +194,69 @@ pub(crate) fn run(tests: &[&dyn TestCase], outcomes: &Outcomes) -> ! {
             let keys = unsafe {KEYINPUT.read_volatile()};
             if keys == 0b0000_0011_1011_1111 {
                 // Up
-                if index > 0 {
-                    index -= 1;
+                match page {
+                    Page::All => {
+                        if all_index == 0 {
+                            all_window.prev();
+                        } else {
+                            all_index -= 1;
+                        }
+                    },
+                    Page::Failed => {
+                        if failed_index == 0 {
+                            failed_window.prev();
+                        } else {
+                            failed_index -= 1;
+                        }
+                    },
+                    Page::Passed => {
+                        if passed_index == 0 {
+                            passed_window.prev();
+                        } else {
+                            passed_index -= 1;
+                        }
+                    },
+                    Page::Ignored => {
+                        if ignored_index == 0 {
+                            ignored_window.prev();
+                        } else {
+                            ignored_index -= 1;
+                        }
+                    },
                 }
                 break;
             }
             if keys == 0b0000_0011_0111_1111 {
                 // Down
-                if index < 17 {
-                    index += 1;
+                match page {
+                    Page::All => {
+                        if all_index == 17 {
+                            all_window.next();
+                        } else {
+                            all_index += 1;
+                        }
+                    },
+                    Page::Failed => {
+                        if failed_index == 17 {
+                            failed_window.next();
+                        } else {
+                            failed_index += 1;
+                        }
+                    },
+                    Page::Passed => {
+                        if passed_index == 17 {
+                            passed_window.next();
+                        } else {
+                            passed_index += 1;
+                        }
+                    },
+                    Page::Ignored => {
+                        if ignored_index == 17 {
+                            ignored_window.next();
+                        } else {
+                            ignored_index += 1;
+                        }
+                    },
                 }
                 break;
             }
@@ -207,7 +272,7 @@ pub(crate) fn run(tests: &[&dyn TestCase], outcomes: &Outcomes) -> ! {
             }
             if keys == 0b0000_0011_1111_1110 {
                 // A
-                log::info!("Selected: {}", index);
+                log::info!("Selected: {}: {:?}", all_window.get(all_index).unwrap().0.name(), all_window.get(all_index).unwrap().1);
             }
         }
     }
