@@ -7,6 +7,7 @@ macro_rules! include_aligned_bytes {
 }
 
 mod cursor;
+mod entry;
 mod font;
 
 use crate::{outcome, outcome::{Outcome, Outcomes}, test_case::TestCase};
@@ -103,7 +104,7 @@ fn draw_test_outcomes<'a, TestOutcomes>(test_outcomes: TestOutcomes, index: usiz
         }
     }
 
-    // Clear previous outcome text.
+    // Clear previous text.
     for y in 0..20 {
         for x in 0..30 {
             unsafe {TEXT_ENTRIES.add(0x20 * y + x).write_volatile(0);}
@@ -273,6 +274,9 @@ pub(crate) fn run(tests: &'static [&'static dyn TestCase], outcomes: &Outcomes) 
             if keys == 0b0000_0011_1111_1110 {
                 // A
                 log::info!("Selected: {}: {:?}", all_window.get(all_index).unwrap().0.name(), all_window.get(all_index).unwrap().1);
+                let (test_case, outcome) = all_window.get(all_index).unwrap();
+                entry::show(test_case, outcome);
+                break;
             }
         }
     }
