@@ -10,7 +10,7 @@ mod cursor;
 mod font;
 
 use crate::{outcome, outcome::{Outcome, Outcomes}, test_case::TestCase};
-use core::{arch::asm, fmt::Write};
+use core::{arch::asm, cmp::min, fmt::Write};
 use cursor::Cursor;
 
 const DISPCNT: *mut u16 = 0x0400_0000 as *mut u16;
@@ -230,28 +230,28 @@ pub(crate) fn run(tests: &'static [&'static dyn TestCase], outcomes: &Outcomes) 
                 // Down
                 match page {
                     Page::All => {
-                        if all_index == 17 {
+                        if all_index == min(17, all_length - 1) {
                             all_window.next();
                         } else {
                             all_index += 1;
                         }
                     },
                     Page::Failed => {
-                        if failed_index == 17 {
+                        if failed_index == min(17, failed_length - 1) {
                             failed_window.next();
                         } else {
                             failed_index += 1;
                         }
                     },
                     Page::Passed => {
-                        if passed_index == 17 {
+                        if passed_index == min(17, passed_length - 1) {
                             passed_window.next();
                         } else {
                             passed_index += 1;
                         }
                     },
                     Page::Ignored => {
-                        if ignored_index == 17 {
+                        if ignored_index == min(17, ignored_length - 1) {
                             ignored_window.next();
                         } else {
                             ignored_index += 1;
