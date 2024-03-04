@@ -272,11 +272,11 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
         let outcome = match unsafe {self.outcome.add(17).read()} {
             OutcomeVariant::Passed => Outcome::Passed,
             OutcomeVariant::Ignored => Outcome::Ignored,
-            OutcomeVariant::Failed => Outcome::Failed(Self::next_error_message(&mut self.error_message_front)),
+            OutcomeVariant::Failed => Outcome::Failed(Self::next_error_message(&mut self.error_message_back)),
         };
         // Check if the dropped outcome in the window requires moving the error message pointer.
         if matches!(unsafe {self.outcome.sub(1).read()}, OutcomeVariant::Failed) {
-            Self::next_error_message(&mut self.error_message_back);
+            Self::next_error_message(&mut self.error_message_front);
         }
 
         self.index += 1;
@@ -297,12 +297,12 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
             OutcomeVariant::Passed => Outcome::Passed,
             OutcomeVariant::Ignored => Outcome::Ignored,
             OutcomeVariant::Failed => {
-                Outcome::Failed(Self::prev_error_message(&mut self.error_message_back))
+                Outcome::Failed(Self::prev_error_message(&mut self.error_message_front))
             },
         };
         // Check if the dropped outcome in the window requires moving the error message pointer.
         if matches!(unsafe {self.outcome.add(SIZE).read()}, OutcomeVariant::Failed) {
-            Self::prev_error_message(&mut self.error_message_front);
+            Self::prev_error_message(&mut self.error_message_back);
         }
 
         self.index -= 1;
@@ -387,7 +387,7 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> where Filter: self::Filter 
     pub(crate) fn iter(&self) -> impl Iterator<Item = (&dyn TestCase, Outcome<&'static str>)> {
         unsafe {slice::from_raw_parts(self.test_case, self.length - self.index)}.into_iter().copied().zip(OutcomesIter {
             outcomes: self.outcome,
-            error_messages: self.error_message_back,
+            error_messages: self.error_message_front,
             length: self.length - self.index,
         }).filter(|(_, outcome)| Filter::filter(&outcome))
     }
