@@ -131,27 +131,38 @@ fn draw_test_outcomes<'a, TestOutcomes>(test_outcomes: TestOutcomes, index: usiz
     }
 }
 
-enum Page {
-    All,
-    Failed,
-    Passed,
-    Ignored,
+enum Page<'a, const SIZE: usize> {
+    All(&'a mut outcome::Window<outcome::All, SIZE>),
+    Failed(&'a mut outcome::Window<outcome::Failed, SIZE>),
+    Passed(&'a mut outcome::Window<outcome::Passed, SIZE>),
+    Ignored(&'a mut outcome::Window<outcome::Ignored, SIZE>),
 }
 
-impl Page {
-    fn increment(self) -> Self {
+impl<const SIZE: usize> Page<'_, SIZE> {
+    fn prev(&mut self) {
         match self {
-            Self::All => Self::Failed,
-            Self::Failed => Self::Passed,
-            _ => Self::Ignored,
-        }
+            Self::All(window) => window.prev(),
+            Self::Failed(window) => window.prev(),
+            Self::Passed(window) => window.prev(),
+            Self::Ignored(window) => window.prev(),
+        };
     }
 
-    fn decrement(self) -> Self {
+    fn next(&mut self) {
         match self {
-            Self::Passed => Self::Failed,
-            Self::Ignored => Self::Passed,
-            _ => Self::All,
+            Self::All(window) => window.next(),
+            Self::Failed(window) => window.next(),
+            Self::Passed(window) => window.next(),
+            Self::Ignored(window) => window.next(),
+        };
+    }
+    
+    fn get(&mut self, index: usize) -> Option<(&dyn TestCase, Outcome<&'static str>)> {
+        match self {
+            Self::All(window) => window.get(index),
+            Self::Failed(window) => window.get(index),
+            Self::Passed(window) => window.get(index),
+            Self::Ignored(window) => window.get(index),
         }
     }
 }
@@ -167,7 +178,6 @@ pub(crate) fn run(tests: &'static [&'static dyn TestCase], outcomes: &Outcomes) 
     load_ui_tiles();
 
     // Test selection.
-    let mut page = Page::All;
     let all_length = tests.len();
     let failed_length = outcomes.iter_outcomes().filter(|outcome| matches!(outcome, Outcome::Failed(_))).count();
     let passed_length = outcomes.iter_outcomes().filter(|outcome| matches!(outcome, Outcome::Passed)).count();
@@ -177,6 +187,7 @@ pub(crate) fn run(tests: &'static [&'static dyn TestCase], outcomes: &Outcomes) 
     let mut failed_window = outcome::Window::<outcome::Failed, 18>::new(tests, outcomes, failed_length);
     let mut passed_window = outcome::Window::<outcome::Passed, 18>::new(tests, outcomes, passed_length);
     let mut ignored_window = outcome::Window::<outcome::Ignored, 18>::new(tests, outcomes, ignored_length);
+    let mut page = Page::All(&mut all_window);
     let mut all_index = 0;
     let mut failed_index = 0;
     let mut passed_index = 0;
@@ -185,112 +196,65 @@ pub(crate) fn run(tests: &'static [&'static dyn TestCase], outcomes: &Outcomes) 
     loop {
         // Draw the tests that should currently be viewable.
         match page {
-            Page::All => draw_test_outcomes(all_window.iter(),all_index, lengths),
-            Page::Failed => draw_test_outcomes(failed_window.iter(),failed_index, lengths),
-            Page::Passed => draw_test_outcomes(passed_window.iter(),passed_index, lengths),
-            Page::Ignored => draw_test_outcomes(ignored_window.iter(),ignored_index, lengths),
+            Page::All(ref window) => draw_test_outcomes(window.iter(),all_index, lengths),
+            Page::Failed(ref window) => draw_test_outcomes(window.iter(),failed_index, lengths),
+            Page::Passed(ref window) => draw_test_outcomes(window.iter(),passed_index, lengths),
+            Page::Ignored(ref window) => draw_test_outcomes(window.iter(),ignored_index, lengths),
         }
         // Wait until input is received from the user.
         loop {
+            let (index, length) = match page {
+                Page::All(_) => (&mut all_index, all_length),
+                Page::Failed(_) => (&mut failed_index, failed_length),
+                Page::Passed(_) => (&mut passed_index, passed_length),
+                Page::Ignored(_) => (&mut ignored_index, ignored_length),
+            };
             wait_for_vblank();
             let keys = unsafe {KEYINPUT.read_volatile()};
             if keys != old_keys {
                 if keys == 0b0000_0011_1011_1111 {
                     // Up
-                    match page {
-                        Page::All => {
-                            if all_index == 0 {
-                                all_window.prev();
-                            } else {
-                                all_index -= 1;
-                            }
-                        },
-                        Page::Failed => {
-                            if failed_index == 0 {
-                                failed_window.prev();
-                            } else {
-                                failed_index -= 1;
-                            }
-                        },
-                        Page::Passed => {
-                            if passed_index == 0 {
-                                passed_window.prev();
-                            } else {
-                                passed_index -= 1;
-                            }
-                        },
-                        Page::Ignored => {
-                            if ignored_index == 0 {
-                                ignored_window.prev();
-                            } else {
-                                ignored_index -= 1;
-                            }
-                        },
+                    if *index == 0 {
+                        page.prev();
+                    } else {
+                        *index -= 1;
                     }
                     old_keys = keys;
                     break;
                 }
                 if keys == 0b0000_0011_0111_1111 {
                     // Down
-                    match page {
-                        Page::All => {
-                            if all_index == min(17, all_length - 1) {
-                                all_window.next();
-                            } else {
-                                all_index += 1;
-                            }
-                        },
-                        Page::Failed => {
-                            if failed_index == min(17, failed_length - 1) {
-                                failed_window.next();
-                            } else {
-                                failed_index += 1;
-                            }
-                        },
-                        Page::Passed => {
-                            if passed_index == min(17, passed_length - 1) {
-                                passed_window.next();
-                            } else {
-                                passed_index += 1;
-                            }
-                        },
-                        Page::Ignored => {
-                            if ignored_index == min(17, ignored_length - 1) {
-                                ignored_window.next();
-                            } else {
-                                ignored_index += 1;
-                            }
-                        },
+                    if *index == min(17, length - 1) {
+                        page.next();
+                    } else {
+                        *index += 1;
                     }
                     old_keys = keys;
                     break;
                 }
                 if keys == 0b0000_0010_1111_1111 {
                     // R
-                    page = page.increment();
+                    page = match page {
+                        Page::All(_) => Page::Failed(&mut failed_window),
+                        Page::Failed(_) => Page::Passed(&mut passed_window),
+                        _ => Page::Ignored(&mut ignored_window),
+                    };
                     old_keys = keys;
                     break;
                 }
                 if keys == 0b0000_0001_1111_1111 {
                     // L
-                    page = page.decrement();
+                    page = match page {
+                        Page::Ignored(_) => Page::Passed(&mut passed_window),
+                        Page::Passed(_) => Page::Failed(&mut failed_window),
+                        _ => Page::All(&mut all_window),
+                    };
                     old_keys = keys;
                     break;
                 }
                 if keys == 0b0000_0011_1111_1110 {
                     // A
-                    let (test_case, outcome) = match page {
-                        Page::All => {
-                            all_window.get(all_index).unwrap()
-                        },
-                        Page::Failed => {
-                            failed_window.get(failed_index).unwrap()
-                        },
-                        Page::Passed => {
-                            passed_window.get(passed_index).unwrap()
-                        },
-                        Page::Ignored => {ignored_window.get(ignored_index).unwrap()},
-                    };
+                    let (test_case, outcome) = page.get(*index).unwrap();
                     entry::show(test_case, outcome);
                     old_keys = keys;
                     break;
