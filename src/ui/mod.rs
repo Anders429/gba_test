@@ -181,6 +181,7 @@ pub(crate) fn run(tests: &'static [&'static dyn TestCase], outcomes: &Outcomes) 
     let mut failed_index = 0;
     let mut passed_index = 0;
     let mut ignored_index = 0;
+    let mut old_keys = 0b0000_0011_1111_1111;
     loop {
         // Draw the tests that should currently be viewable.
         match page {
@@ -193,101 +194,110 @@ pub(crate) fn run(tests: &'static [&'static dyn TestCase], outcomes: &Outcomes) 
         loop {
             wait_for_vblank();
             let keys = unsafe {KEYINPUT.read_volatile()};
-            if keys == 0b0000_0011_1011_1111 {
-                // Up
-                match page {
-                    Page::All => {
-                        if all_index == 0 {
-                            all_window.prev();
-                        } else {
-                            all_index -= 1;
-                        }
-                    },
-                    Page::Failed => {
-                        if failed_index == 0 {
-                            failed_window.prev();
-                        } else {
-                            failed_index -= 1;
-                        }
-                    },
-                    Page::Passed => {
-                        if passed_index == 0 {
-                            passed_window.prev();
-                        } else {
-                            passed_index -= 1;
-                        }
-                    },
-                    Page::Ignored => {
-                        if ignored_index == 0 {
-                            ignored_window.prev();
-                        } else {
-                            ignored_index -= 1;
-                        }
-                    },
+            if keys != old_keys {
+                if keys == 0b0000_0011_1011_1111 {
+                    // Up
+                    match page {
+                        Page::All => {
+                            if all_index == 0 {
+                                all_window.prev();
+                            } else {
+                                all_index -= 1;
+                            }
+                        },
+                        Page::Failed => {
+                            if failed_index == 0 {
+                                failed_window.prev();
+                            } else {
+                                failed_index -= 1;
+                            }
+                        },
+                        Page::Passed => {
+                            if passed_index == 0 {
+                                passed_window.prev();
+                            } else {
+                                passed_index -= 1;
+                            }
+                        },
+                        Page::Ignored => {
+                            if ignored_index == 0 {
+                                ignored_window.prev();
+                            } else {
+                                ignored_index -= 1;
+                            }
+                        },
+                    }
+                    old_keys = keys;
+                    break;
                 }
-                break;
-            }
-            if keys == 0b0000_0011_0111_1111 {
-                // Down
-                match page {
-                    Page::All => {
-                        if all_index == min(17, all_length - 1) {
-                            all_window.next();
-                        } else {
-                            all_index += 1;
-                        }
-                    },
-                    Page::Failed => {
-                        if failed_index == min(17, failed_length - 1) {
-                            failed_window.next();
-                        } else {
-                            failed_index += 1;
-                        }
-                    },
-                    Page::Passed => {
-                        if passed_index == min(17, passed_length - 1) {
-                            passed_window.next();
-                        } else {
-                            passed_index += 1;
-                        }
-                    },
-                    Page::Ignored => {
-                        if ignored_index == min(17, ignored_length - 1) {
-                            ignored_window.next();
-                        } else {
-                            ignored_index += 1;
-                        }
-                    },
+                if keys == 0b0000_0011_0111_1111 {
+                    // Down
+                    match page {
+                        Page::All => {
+                            if all_index == min(17, all_length - 1) {
+                                all_window.next();
+                            } else {
+                                all_index += 1;
+                            }
+                        },
+                        Page::Failed => {
+                            if failed_index == min(17, failed_length - 1) {
+                                failed_window.next();
+                            } else {
+                                failed_index += 1;
+                            }
+                        },
+                        Page::Passed => {
+                            if passed_index == min(17, passed_length - 1) {
+                                passed_window.next();
+                            } else {
+                                passed_index += 1;
+                            }
+                        },
+                        Page::Ignored => {
+                            if ignored_index == min(17, ignored_length - 1) {
+                                ignored_window.next();
+                            } else {
+                                ignored_index += 1;
+                            }
+                        },
+                    }
+                    old_keys = keys;
+                    break;
                 }
-                break;
+                if keys == 0b0000_0010_1111_1111 {
+                    // R
+                    page = page.increment();
+                    old_keys = keys;
+                    break;
+                }
+                if keys == 0b0000_0001_1111_1111 {
+                    // L
+                    page = page.decrement();
+                    old_keys = keys;
+                    break;
+                }
+                if keys == 0b0000_0011_1111_1110 {
+                    // A
+                    let (test_case, outcome) = match page {
+                        Page::All => {
+                            all_window.get(all_index).unwrap()
+                        },
+                        Page::Failed => {
+                            failed_window.get(failed_index).unwrap()
+                        },
+                        Page::Passed => {
+                            passed_window.get(passed_index).unwrap()
+                        },
+                        Page::Ignored => {ignored_window.get(ignored_index).unwrap()},
+                    };
+                    entry::show(test_case, outcome);
+                    old_keys = keys;
+                    break;
+                }
             }
-            if keys == 0b0000_0010_1111_1111 {
-                // R
-                page = page.increment();
-                break;
-            }
-            if keys == 0b0000_0001_1111_1111 {
-                // L
-                page = page.decrement();
-                break;
-            }
-            if keys == 0b0000_0011_1111_1110 {
-                // A
-                let (test_case, outcome) = match page {
-                    Page::All => {
-                        all_window.get(all_index).unwrap()
-                    },
-                    Page::Failed => {
-                        failed_window.get(failed_index).unwrap()
-                    },
-                    Page::Passed => {
-                        passed_window.get(passed_index).unwrap()
-                    },
-                    Page::Ignored => {ignored_window.get(ignored_index).unwrap()},
-                };
-                entry::show(test_case, outcome);
-                break;
-            }
+            
+            old_keys = keys;
         }
     }
 }
