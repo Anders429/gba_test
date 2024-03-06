@@ -16,4 +16,4 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@nightly
-    - run: cargo test
+    - run: cd macros && cargo test
