@@ -9,7 +9,6 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
-  working-directory: ./macros
 
 jobs:
   test:
@@ -17,18 +16,18 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@nightly
-    - run: cargo test
+    - run: cd macros && cargo test
 
   check:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@nightly
-    - run: cargo check
+    - run: cd macros && cargo check
 
   clippy:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@nightly
-    - run: cargo clippy -- --deny warnings
+    - run: cd macros && cargo clippy -- --deny warnings
