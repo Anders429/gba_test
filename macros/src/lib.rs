@@ -53,12 +53,8 @@ impl From<&Vec<Attribute>> for Attributes {
 
         for attribute in attributes {
             if let Some(ident) = attribute.path().get_ident() {
-                match ident.to_string().as_str() {
-                    "ignore" => {
-                        result.ignore = Ident::new("Yes", Span::call_site());
-                    }
-                    // Ignore all other attributes.
-                    _ => {}
+                if ident.to_string().as_str() == "ignore" {
+                    result.ignore = Ident::new("Yes", Span::call_site());
                 }
             }
         }
