@@ -273,8 +273,18 @@ pub(crate) fn run(tests: &'static [&'static dyn TestCase], outcomes: &Outcomes) 
             }
             if keys == 0b0000_0011_1111_1110 {
                 // A
-                log::info!("Selected: {}: {:?}", all_window.get(all_index).unwrap().0.name(), all_window.get(all_index).unwrap().1);
-                let (test_case, outcome) = all_window.get(all_index).unwrap();
+                let (test_case, outcome) = match page {
+                    Page::All => {
+                        all_window.get(all_index).unwrap()
+                    },
+                    Page::Failed => {
+                        failed_window.get(failed_index).unwrap()
+                    },
+                    Page::Passed => {
+                        passed_window.get(passed_index).unwrap()
+                    },
+                    Page::Ignored => {ignored_window.get(ignored_index).unwrap()},
+                };
                 entry::show(test_case, outcome);
                 break;
             }
