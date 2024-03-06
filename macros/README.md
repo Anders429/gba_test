@@ -2,13 +2,13 @@
 Provides the `#[test]` attribute for annotating tests that should be run on the Game Boy Advance.
 
 ## Installation
-This crate is meant to be used with the `gba_test_runner` crate. In most cases, it is easiest to
-simply use `gba_test_runner` with the `macros` feature enabled by specifying the following in your
+This crate is meant to be used with the `gba_test` crate. In most cases, it is easiest to
+simply use `gba_test` with the `macros` feature enabled by specifying the following in your
 `Cargo.toml`:
 
 ```
 [dependencies]
-gba_test_runner = {version = "0.1.0", features = ["macros"]}
+gba_test = {version = "0.1.0", features = ["macros"]}
 ```
 
 ## Usage
