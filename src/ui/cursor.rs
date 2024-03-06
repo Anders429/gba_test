@@ -31,6 +31,10 @@ impl Write for Cursor {
                 unsafe {
                     self.cursor.write_volatile((ascii | ((self.palette as u32) << 12)) as u16);
                     self.cursor = self.cursor.add(1);
+                    // Don't write past the view of the screen.
+                    if (self.cursor as usize) % 0x40 > 0x3a {
+                        self.cursor = (((self.cursor as usize / 0x40) + 1) * 0x40) as *mut u16;
+                    }
                 }
             }
         }
