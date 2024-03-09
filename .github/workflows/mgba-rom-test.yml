@@ -18,6 +18,7 @@ jobs:
     - uses: dtolnay/rust-toolchain@nightly
     # Build mGBA ROM test
     - run: cd tests/pass
+    - run: mkdir mgba
     - run: curl -LsSf https://github.com/mgba-emu/mgba/archive/refs/tags/0.10.3.tar.gz | tar xzf - -C mgba
     - run: cd mgba
     - run: mkdir build && cd build
