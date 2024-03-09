@@ -16,6 +16,8 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@nightly
+      with:
+        components: rust-src
     # Build mGBA ROM test
     - run: sudo apt-get update && sudo apt-get install --no-install-recommends libavcodec-dev libavformat-dev libswresample-dev libavutil-dev libedit-dev libelf-dev libmagickwand-dev libpng-dev libqt5opengl5-dev libsdl2-dev libsqlite3-dev libswscale-dev libzip-dev qtmultimedia5-dev
     - run: mkdir mgba
