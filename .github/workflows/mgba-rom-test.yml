@@ -17,14 +17,10 @@ jobs:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@nightly
     # Build mGBA ROM test
-    - run: cd tests/pass
     - run: mkdir mgba
     - run: curl -LsSf https://github.com/mgba-emu/mgba/archive/refs/tags/0.10.3.tar.gz | tar xzf - -C mgba
-    - run: cd mgba
-    - run: mkdir build && cd build
-    - run: cmake .. -DUSE_LIBZIP=OFF -DBUILD_ROM_TEST=ON -DUSE_PNG=OFF
-    - run: make
-    - run: cd ../.. && cargo test
+    - run: cd mgba && mkdir build && cd build && cmake .. -DUSE_LIBZIP=OFF -DBUILD_ROM_TEST=ON -DUSE_PNG=OFF && make
+    - run: cd tests/pass && cargo test
     # - uses: felixjones/github-mgba-rom-test@v1
     #   with:
     #     swi-call: 0x27
