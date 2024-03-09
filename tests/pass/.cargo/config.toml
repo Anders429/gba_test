@@ -2,7 +2,7 @@
 target = "thumbv4t-none-eabi"
 
 [target.thumbv4t-none-eabi]
-runner = "mgba"
+runner = "mgba-test-runner"
 rustflags = ["-Clinker=arm-none-eabi-ld", "-Clink-arg=-Tgba.ld", "-Ztrap-unreachable=no"]
 
 [unstable]
