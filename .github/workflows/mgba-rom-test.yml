@@ -24,7 +24,7 @@ jobs:
     - run: mkdir mgba
     - run: curl -LsSf https://github.com/mgba-emu/mgba/archive/refs/tags/0.10.3.tar.gz | tar xzf - -C mgba
     - run: cd mgba/mgba-0.10.3 && mkdir build && cd build && cmake -DUSE_LIBZIP=OFF -DBUILD_ROM_TEST=ON -DUSE_PNG=OFF .. && make
-    - run: mv mgba/mgba-0.10.3/build/mgba-rom-test tests/pass/mgba-rom-test
+    - run: mv mgba/mgba-0.10.3/mgba-rom-test tests/pass/mgba-rom-test
     - run: cd tests/pass && cargo test
     # - uses: felixjones/github-mgba-rom-test@v1
     #   with:
