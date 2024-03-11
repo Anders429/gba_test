@@ -27,7 +27,8 @@ jobs:
     # - run: mv mgba/mgba-0.10.3/include/mgba mgba-rom-test
     # - run: chmod -f 777 mgba-rom-test
     # - run: echo "$GITHUB_WORKSPACE" >> $GITHUB_PATH
-    - run: cd tests/pass && echo "ROM_PATH=$(cargo test --no-run | awk '$1=="Executable"{print $4;exit;}')" >> $GITHUB_OUTPUT
+    - run: | 
+          cd tests/pass && echo "ROM_PATH=$(cargo test --no-run | awk '$1=="Executable"{print $4;exit;}')" >> $GITHUB_OUTPUT
       id: rom_path
     - uses: felixjones/github-mgba-rom-test@v1
       with:
