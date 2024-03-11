@@ -25,9 +25,9 @@ jobs:
     - run: curl -LsSf https://github.com/mgba-emu/mgba/archive/refs/tags/0.10.3.tar.gz | tar xzf - -C mgba
     - run: cd mgba/mgba-0.10.3 && mkdir build && cd build && cmake -DUSE_LIBZIP=OFF -DBUILD_ROM_TEST=ON -DUSE_PNG=OFF .. && make
     - run: mv mgba/mgba-0.10.3/include/mgba mgba-rom-test
-    - run: chmod a+rwx mgba-rom-test
+    - run: chmod -f 777 mgba-rom-test
     - run: echo "$GITHUB_WORKSPACE" >> $GITHUB_PATH
-    - run: cd tests/pass && sudo -E cargo test
+    - run: cd tests/pass && cargo test
     # - uses: felixjones/github-mgba-rom-test@v1
     #   with:
     #     swi-call: 0x27
