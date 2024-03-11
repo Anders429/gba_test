@@ -20,7 +20,7 @@ jobs:
         components: rust-src
     # Build mGBA ROM test
     # - run: sudo apt-get update && sudo apt-get install --no-install-recommends libavcodec-dev libavformat-dev libswresample-dev libavutil-dev libedit-dev libelf-dev libmagickwand-dev libpng-dev libqt5opengl5-dev libsdl2-dev libsqlite3-dev libswscale-dev libzip-dev qtmultimedia5-dev
-    # - run: sudo apt-get install binutils-arm-none-eabi
+    - run: sudo apt-get install binutils-arm-none-eabi
     # - run: mkdir mgba
     # - run: curl -LsSf https://github.com/mgba-emu/mgba/archive/refs/tags/0.10.3.tar.gz | tar xzf - -C mgba
     # - run: cd mgba/mgba-0.10.3 && mkdir build && cd build && cmake -DUSE_LIBZIP=OFF -DBUILD_ROM_TEST=ON -DUSE_PNG=OFF .. && make
