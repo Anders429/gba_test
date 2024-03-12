@@ -29,8 +29,12 @@ jobs:
     # - run: echo "$GITHUB_WORKSPACE" >> $GITHUB_PATH
     # - run: cd tests/pass && cargo test
     # - run: cd tests/pass && cargo test --no-run
-    - run: cd tests/pass && echo "ROM_PATH=$(cargo test --no-run | awk '$1=="Executable"{print $4;exit;}')" >> $GITHUB_OUTPUT
+    - name: Build ROM
+      id: build_rom
+      run: cd tests/pass && echo "ROM_PATH=$(cargo test --no-run | awk '$1=="Executable"{print $4;exit;}')" >> $GITHUB_OUTPUT
     - run: echo "$ROM_PATH"
+      env:
+        ROM_PATH: ${{ steps.build_rom.outputs.ROM_PATH }}
     #   id: rom_path
     # - uses: felixjones/github-mgba-rom-test@v1
     #   with:
