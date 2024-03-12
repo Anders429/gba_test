@@ -37,6 +37,14 @@ jobs:
     - run: echo "$ROM_PATH"
       env:
         ROM_PATH: ${{ steps.build_rom.outputs.ROM_PATH }}
+    - name: Set the value
+      id: step_one
+      run: |
+          echo "FOO=$(git status)" >> $GITHUB_ENV
+    - name: Use the value
+      id: step_two
+      run: |
+          echo "${{ env.FOO }}"
     #   id: rom_path
     # - uses: felixjones/github-mgba-rom-test@v1
     #   with:
