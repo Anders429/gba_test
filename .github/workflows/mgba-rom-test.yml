@@ -35,8 +35,8 @@ jobs:
     # - run: echo "ROM_PATH=hello" >> $GITHUB_OUTPUT
     #   id: build_rom
     - run: echo "$ROM_PATH"
-      # env:
-      #   ROM_PATH: ${{ steps.build_rom.outputs.ROM_PATH }}
+      env:
+        ROM_PATH: ${{ env.ROM_PATH }}
     - name: Set the value
       id: step_one
       run: |
