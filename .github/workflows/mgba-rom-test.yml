@@ -31,12 +31,12 @@ jobs:
     # - run: cd tests/pass && cargo test --no-run
     - name: Build ROM
       id: build_rom
-      run: cd tests/pass && echo "ROM_PATH=$(cargo test --no-run)" >> $GITHUB_OUTPUT
+      run: cd tests/pass && echo "ROM_PATH=$(cargo test --no-run)" >> $GITHUB_ENV
     # - run: echo "ROM_PATH=hello" >> $GITHUB_OUTPUT
     #   id: build_rom
     - run: echo "$ROM_PATH"
-      env:
-        ROM_PATH: ${{ steps.build_rom.outputs.ROM_PATH }}
+      # env:
+      #   ROM_PATH: ${{ steps.build_rom.outputs.ROM_PATH }}
     - name: Set the value
       id: step_one
       run: |
