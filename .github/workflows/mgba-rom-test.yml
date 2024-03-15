@@ -32,6 +32,10 @@ jobs:
     - name: Build ROM
       id: build_rom
       run: cd tests/pass && cargo test --no-run --message-format=json | tee results.json
+    - run: ls .
+    - run: ls tests
+    - run: ls tests/pass
+    - run: ls tests/parse_executable
     - run: cd tests/parse_executable && cargo run results.json
     # - run: echo "ROM_PATH=hello" >> $GITHUB_OUTPUT
     #   id: build_rom
