@@ -36,7 +36,7 @@ jobs:
     - run: ls tests
     - run: ls tests/pass
     - run: ls tests/parse_executable
-    - run: cd tests/parse_executable && cargo run results.json
+    - run: cd tests/parse_executable && cargo run ../pass/results.json
     # - run: echo "ROM_PATH=hello" >> $GITHUB_OUTPUT
     #   id: build_rom
     - run: echo "$ROM_PATH"
