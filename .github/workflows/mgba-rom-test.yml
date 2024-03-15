@@ -31,6 +31,10 @@ jobs:
     # - run: cd tests/pass && cargo test --no-run
     - run: cd tests/pass && cargo test --no-run --message-format=json | tee results.json
     - run: echo "ROM_PATH=$(cd tests/parse_executable && cargo run ../pass/results.json)" >> $GITHUB_ENV
+    - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} pass.gba
+    - run: cargo install gbafix
+    - run: gbafix pass.gba
+
     # - run: echo "ROM_PATH=hello" >> $GITHUB_OUTPUT
     #   id: build_rom
     # - run: echo "$ROM_PATH"
@@ -41,5 +45,5 @@ jobs:
       with:
         swi-call: 0x27
         read-register: 'r0'
-        rom-path: ${{ env.ROM_PATH }}
+        rom-path: pass.gba
         success-code: 0  # Pass
