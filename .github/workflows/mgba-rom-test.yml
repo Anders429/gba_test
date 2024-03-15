@@ -29,31 +29,17 @@ jobs:
     # - run: echo "$GITHUB_WORKSPACE" >> $GITHUB_PATH
     # - run: cd tests/pass && cargo test
     # - run: cd tests/pass && cargo test --no-run
-    - name: Build ROM
-      id: build_rom
-      run: cd tests/pass && cargo test --no-run --message-format=json | tee results.json
-    - run: ls .
-    - run: ls tests
-    - run: ls tests/pass
-    - run: ls tests/parse_executable
+    - run: cd tests/pass && cargo test --no-run --message-format=json | tee results.json
     - run: echo "ROM_PATH=$(cd tests/parse_executable && cargo run ../pass/results.json)" >> $GITHUB_ENV
     # - run: echo "ROM_PATH=hello" >> $GITHUB_OUTPUT
     #   id: build_rom
-    - run: echo "$ROM_PATH"
-      env:
-        ROM_PATH: ${{ env.ROM_PATH }}
-    - name: Set the value
-      id: step_one
-      run: |
-          echo "FOO=$(git status)" >> $GITHUB_ENV
-    - name: Use the value
-      id: step_two
-      run: |
-          echo "${{ env.FOO }}"
+    # - run: echo "$ROM_PATH"
+    #   env:
+    #     ROM_PATH: ${{ env.ROM_PATH }}
     #   id: rom_path
-    # - uses: felixjones/github-mgba-rom-test@v1
-    #   with:
-    #     swi-call: 0x27
-    #     read-register: 'r0'
-    #     rom-path: ${{ steps.rom_path.outputs.ROM_PATH }}
-    #     success-code: 0  # Pass
+    - uses: felixjones/github-mgba-rom-test@v1
+      with:
+        swi-call: 0x27
+        read-register: 'r0'
+        rom-path: ${{ env.ROM_PATH }}
+        success-code: 0  # Pass
