@@ -86,20 +86,28 @@ fn report_result(result: usize) {
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     // TODO: Need to handle when this is called outside of the test runner.
-    let test = unsafe {CURRENT_TEST.unwrap()};
-    match test.should_panic() {
-        ShouldPanic::No => {
-            log::info!("test failed");
-            store_outcome(Outcome::Failed(info));
+    if let Some(test) = unsafe { CURRENT_TEST.take() } {
+        // Panicked while executing a test. Handle the result.
+        match test.should_panic() {
+            ShouldPanic::No => {
+                log::info!("test failed");
+                store_outcome(Outcome::Failed(info));
+            }
+            ShouldPanic::Yes => {
+                log::info!("test passed");
+                store_outcome(Outcome::<&str>::Passed);
+            }
         }
-        ShouldPanic::Yes => {
-            log::info!("test passed");
-            store_outcome(Outcome::<&str>::Passed);
-        }
-    }
 
-    // Soft resetting the system allows us to recover from the panicked state and continue testing.
-    reset()
+        // Soft resetting the system allows us to recover from the panicked state and continue testing.
+        reset()
+    } else {
+        // Panicked outside of executing a test.
+        //
+        // For now, just log the panic. In the future we will display it on screen as well.
+        log::error!("panicked at: {info}");
+        loop {}
+    }
 }
 
 /// A test runner to execute tests as a Game Boy Advance ROM.
@@ -136,14 +144,12 @@ pub fn runner(tests: &'static [&'static dyn TestCase]) {
                     ShouldPanic::No => {
                         log::info!("test passed");
                         store_outcome(Outcome::<&str>::Passed);
-                    },
+                    }
                     ShouldPanic::Yes => {
                         log::info!("test failed");
                         store_outcome(Outcome::Failed("note: test did not panic as expected"))
                     }
                 }
-                log::info!("test passed");
-                store_outcome(Outcome::<&str>::Passed);
             }
         }
         // Reset the system to ensure tests are not accidentally reliant on each other.

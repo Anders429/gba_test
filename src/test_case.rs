@@ -63,7 +63,7 @@ pub struct Test {
     /// This is set by the `#[ignore]` attribute.
     pub ignore: Ignore,
     /// Whether the test is expected to panic.
-    /// 
+    ///
     /// This is set by the `#[should_panic]` attribute.
     pub should_panic: ShouldPanic,
 }
