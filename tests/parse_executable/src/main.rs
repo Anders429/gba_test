@@ -1,3 +1,11 @@
+//! Simple program to extract executable path from `cargo test` output.
+//! 
+//! Specifically, this requires json output from running
+//! `cargo test --no-run --message-format=json`. The executable path is printed to `stdout`.
+//! 
+//! The primary use of this program is in continuous integration, allowing the test executable to
+//! be obtained programmatically.
+
 use cargo_metadata::Message;
 use std::{env::args, fs::File, io::BufReader};
 
