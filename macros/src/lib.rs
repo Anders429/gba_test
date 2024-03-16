@@ -36,6 +36,7 @@ use syn::{parse, Attribute, Ident, ItemFn};
 /// Structured representation of the configuration attributes provided for a test.
 struct Attributes {
     ignore: Ident,
+    should_panic: Ident,
 }
 
 impl Attributes {
@@ -43,6 +44,7 @@ impl Attributes {
     fn new() -> Self {
         Self {
             ignore: Ident::new("No", Span::call_site()),
+            should_panic: Ident::new("No", Span::call_site()),
         }
     }
 }
@@ -53,8 +55,16 @@ impl From<&Vec<Attribute>> for Attributes {
 
         for attribute in attributes {
             if let Some(ident) = attribute.path().get_ident() {
-                if ident.to_string().as_str() == "ignore" {
-                    result.ignore = Ident::new("Yes", Span::call_site());
+                match ident.to_string().as_str() {
+                    "ignore" => {
+                        result.ignore = Ident::new("Yes", Span::call_site());
+                    },
+                    "should_panic" => {
+                        result.should_panic = Ident::new("Yes", Span::call_site());
+                    }
+                    _ => {
+                        // Not supported.
+                    },
                 }
             }
         }
@@ -83,6 +93,7 @@ pub fn test(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let name = function.sig.ident.clone();
     let attributes = Attributes::from(&function.attrs);
     let ignore = attributes.ignore;
+    let should_panic = attributes.should_panic;
 
     TokenStream::from(quote! {
         mod #name {
@@ -95,6 +106,7 @@ pub fn test(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 name: module_path!(),
                 test: #name,
                 ignore: ::gba_test::Ignore::#ignore,
+                should_panic: ::gba_test::ShouldPanic::#should_panic,
             };
         }
     })

@@ -17,6 +17,14 @@ pub enum Ignore {
     Yes,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum ShouldPanic {
+    /// The test is expected to run successfully.
+    No,
+    /// The test is expected to panic during execution.
+    Yes,
+}
+
 /// Defines a test case executable by the test runner.
 pub trait TestCase {
     /// The name of the test.
@@ -30,9 +38,13 @@ pub trait TestCase {
 
     /// Whether the test should be excluded or not.
     ///
-    /// If this method returns true, the test function will not be run at all (but it will still be
-    /// compiled). This allows for time-consuming or expensive tests to be conditionally disabled.
+    /// If this method returns `Ignore::Yes`, the test function will not be run at all (but it will
+    /// still be compiled). This allows for time-consuming or expensive tests to be conditionally
+    /// disabled.
     fn ignore(&self) -> Ignore;
+
+    /// Whether the test is expected to panic.
+    fn should_panic(&self) -> ShouldPanic;
 }
 
 /// A standard test.
@@ -50,6 +62,10 @@ pub struct Test {
     ///
     /// This is set by the `#[ignore]` attribute.
     pub ignore: Ignore,
+    /// Whether the test is expected to panic.
+    /// 
+    /// This is set by the `#[should_panic]` attribute.
+    pub should_panic: ShouldPanic,
 }
 
 impl TestCase for Test {
@@ -67,5 +83,9 @@ impl TestCase for Test {
 
     fn ignore(&self) -> Ignore {
         self.ignore
+    }
+
+    fn should_panic(&self) -> ShouldPanic {
+        self.should_panic
     }
 }

@@ -4,7 +4,7 @@
 //! code here should only ever be run on a Game Boy Advance, and the safety considerations do not
 //! apply for other targets.
 
-use crate::{test_case::Ignore, ui, Outcome, Outcomes, TestCase};
+use crate::{test_case::Ignore, ui, Outcome, Outcomes, ShouldPanic, TestCase};
 use core::{arch::asm, fmt::Display, panic::PanicInfo, ptr::addr_of};
 
 // TODO: Make these more type-safe.
@@ -15,6 +15,9 @@ const IE: *mut u16 = 0x0400_0200 as *mut u16;
 /// The index of the next test to be run.
 #[link_section = ".noinit"]
 static mut INDEX: usize = 0;
+
+/// The current test being run.
+static mut CURRENT_TEST: Option<&'static dyn TestCase> = None;
 
 #[link_section = ".noinit"]
 static mut OUTCOMES: Option<Outcomes> = None;
@@ -83,8 +86,17 @@ fn report_result(result: usize) {
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     // TODO: Need to handle when this is called outside of the test runner.
-    log::info!("test failed");
-    store_outcome(Outcome::Failed(info));
+    let test = unsafe {CURRENT_TEST.unwrap()};
+    match test.should_panic() {
+        ShouldPanic::No => {
+            log::info!("test failed");
+            store_outcome(Outcome::Failed(info));
+        }
+        ShouldPanic::Yes => {
+            log::info!("test passed");
+            store_outcome(Outcome::<&str>::Passed);
+        }
+    }
 
     // Soft resetting the system allows us to recover from the panicked state and continue testing.
     reset()
@@ -110,6 +122,7 @@ pub fn runner(tests: &'static [&'static dyn TestCase]) {
     for test in &tests[index..] {
         unsafe {
             INDEX += 1;
+            CURRENT_TEST = Some(*test);
         }
         log::info!("running test: {}", test.name());
         match test.ignore() {
@@ -119,6 +132,16 @@ pub fn runner(tests: &'static [&'static dyn TestCase]) {
             }
             Ignore::No => {
                 test.run();
+                match test.should_panic() {
+                    ShouldPanic::No => {
+                        log::info!("test passed");
+                        store_outcome(Outcome::<&str>::Passed);
+                    },
+                    ShouldPanic::Yes => {
+                        log::info!("test failed");
+                        store_outcome(Outcome::Failed("note: test did not panic as expected"))
+                    }
+                }
                 log::info!("test passed");
                 store_outcome(Outcome::<&str>::Passed);
             }
