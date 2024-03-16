@@ -58,13 +58,13 @@ impl From<&Vec<Attribute>> for Attributes {
                 match ident.to_string().as_str() {
                     "ignore" => {
                         result.ignore = Ident::new("Yes", Span::call_site());
-                    },
+                    }
                     "should_panic" => {
                         result.should_panic = Ident::new("Yes", Span::call_site());
                     }
                     _ => {
                         // Not supported.
-                    },
+                    }
                 }
             }
         }
