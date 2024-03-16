@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "macros", "tests/parse_executable",
+    "macros",
 ]
 exclude = [
     "tests/"

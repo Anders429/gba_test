@@ -54,7 +54,11 @@ pub struct Test {
 
 impl TestCase for Test {
     fn name(&self) -> &str {
-        self.name
+        if let Some((_, path)) = self.name.split_once("::") {
+            path
+        } else {
+            self.name
+        }
     }
 
     fn run(&self) {

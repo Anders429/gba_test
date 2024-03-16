@@ -92,7 +92,7 @@ pub fn test(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
             #[test_case]
             const TEST: ::gba_test::Test = ::gba_test::Test {
-                name: stringify!(#name),
+                name: module_path!(),
                 test: #name,
                 ignore: ::gba_test::Ignore::#ignore,
             };
