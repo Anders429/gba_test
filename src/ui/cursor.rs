@@ -7,10 +7,7 @@ pub(super) struct Cursor {
 
 impl Cursor {
     pub(super) unsafe fn new(cursor: *mut u16) -> Self {
-        Self {
-            cursor,
-            palette: 0,
-        }
+        Self { cursor, palette: 0 }
     }
 
     pub(super) fn set_palette(&mut self, palette: u8) {
@@ -26,10 +23,10 @@ impl Write for Cursor {
             if ascii == u32::from('\n') {
                 // Move to the next line.
                 self.cursor = (((self.cursor as usize / 0x40) + 1) * 0x40) as *mut u16;
-            }
-            else if ascii < 128 {
+            } else if ascii < 128 {
                 unsafe {
-                    self.cursor.write_volatile((ascii | ((self.palette as u32) << 12)) as u16);
+                    self.cursor
+                        .write_volatile((ascii | ((self.palette as u32) << 12)) as u16);
                     self.cursor = self.cursor.add(1);
                     // Don't write past the view of the screen.
                     if (self.cursor as usize) % 0x40 > 0x3a {

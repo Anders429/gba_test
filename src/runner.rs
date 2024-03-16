@@ -4,8 +4,8 @@
 //! code here should only ever be run on a Game Boy Advance, and the safety considerations do not
 //! apply for other targets.
 
-use crate::{TestCase, test_case::Ignore, Outcome, Outcomes, ui};
-use core::{arch::asm, fmt::Display, ptr::addr_of, panic::PanicInfo};
+use crate::{test_case::Ignore, ui, Outcome, Outcomes, TestCase};
+use core::{arch::asm, fmt::Display, panic::PanicInfo, ptr::addr_of};
 
 // TODO: Make these more type-safe.
 const DISPSTAT: *mut u16 = 0x0400_0004 as *mut u16;
@@ -19,15 +19,18 @@ static mut INDEX: usize = 0;
 #[link_section = ".noinit"]
 static mut OUTCOMES: Option<Outcomes> = None;
 
-fn store_outcome<Data>(outcome: Outcome<Data>) where Data: Display {
+fn store_outcome<Data>(outcome: Outcome<Data>)
+where
+    Data: Display,
+{
     // TODO: Handle cases where `OUTCOMES` is not present.
-    if let Some(outcomes) = unsafe {OUTCOMES.as_mut()} {
+    if let Some(outcomes) = unsafe { OUTCOMES.as_mut() } {
         outcomes.push_outcome(outcome);
     }
 }
 
 /// Perform a soft reset on the GBA.
-/// 
+///
 /// This resets the entire system, although it does not clear `.noinit` data in EWRAM. This means
 /// that the current testing context and previous results will persist through this reset.
 #[inline]
@@ -45,18 +48,18 @@ fn reset() -> ! {
 
 /// This calls SWI 0x27 (CustomHalt), triggering a halt (equivalent to SWI 0x02) until the next
 /// interrupt.
-/// 
+///
 /// SWI 0x27 is a nonstandard (and undocumented) BIOS instruction, with all official documentation
 /// instead recommending to use SWI 0x02 and SWI 0x03. This means we are reasonably safe to use it
 /// here specifically for reporting the test result to an emulated test runner that is listening
 /// for this BIOS instruction. For more information about BIOS instructions, consult GBATEK.
-/// 
+///
 /// The intention is for this to be used with `mgba-rom-test` (or another similar emulator
 /// specialized for testing), configured to listen for SWI 0x27 with `r0` containing the exit code.
 /// The standard in this library is to return `0` as a successful exit code, with any other value
 /// indicating a test failure. With this behavior, tests can be run using `mgba-rom-test` or
 /// similar in CI.
-/// 
+///
 /// Outside of a test emulator, this function should not halt the display of the test results.
 /// Since halting only persists until the next interrupt, the program will continue as soon as the
 /// next vblank interrupt is triggered.
@@ -91,16 +94,23 @@ fn panic(info: &PanicInfo) -> ! {
 pub fn runner(tests: &'static [&'static dyn TestCase]) {
     mgba_log::init();
 
-    if unsafe {OUTCOMES.is_none()} {
+    if unsafe { OUTCOMES.is_none() } {
         extern "C" {
             static __ewram_data_end: u8;
         }
-        unsafe {OUTCOMES = Some(Outcomes::new((addr_of!(__ewram_data_end) as usize) as *mut u8, tests.len()));}
+        unsafe {
+            OUTCOMES = Some(Outcomes::new(
+                (addr_of!(__ewram_data_end) as usize) as *mut u8,
+                tests.len(),
+            ));
+        }
     }
-    
-    let index = unsafe {INDEX};
+
+    let index = unsafe { INDEX };
     for test in &tests[index..] {
-        unsafe {INDEX += 1;}
+        unsafe {
+            INDEX += 1;
+        }
         log::info!("running test: {}", test.name());
         match test.ignore() {
             Ignore::Yes => {
@@ -132,7 +142,13 @@ pub fn runner(tests: &'static [&'static dyn TestCase]) {
     // the next vblank. On test emulators (such as `mgba-rom-test`), this will exit the emulator
     // with the `return_value` as the program's exit code if the emulator has been configured to
     // listen for SWI 0x27 with the exit code on `r0`.
-    report_result(unsafe {OUTCOMES.as_ref().unwrap().iter_outcomes().any(|outcome| matches!(outcome, Outcome::Failed(_)))} as usize);
+    report_result(unsafe {
+        OUTCOMES
+            .as_ref()
+            .unwrap()
+            .iter_outcomes()
+            .any(|outcome| matches!(outcome, Outcome::Failed(_)))
+    } as usize);
 
-    ui::run(tests, unsafe {OUTCOMES.as_ref().unwrap()})
+    ui::run(tests, unsafe { OUTCOMES.as_ref().unwrap() })
 }
