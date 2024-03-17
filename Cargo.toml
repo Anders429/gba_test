@@ -1,11 +1,3 @@
-[workspace]
-members = [
-    "macros",
-]
-exclude = [
-    "tests/"
-]
-
 [package]
 name = "gba_test"
 version = "0.1.0"

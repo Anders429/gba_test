@@ -20,7 +20,7 @@ jobs:
         components: rust-src
     - run: sudo apt-get install binutils-arm-none-eabi
     - run: cd tests/pass && cargo test --no-run --message-format=json | tee results.json
-    - run: echo "ROM_PATH=$(cd tests/parse_executable && cargo run ../pass/results.json)" >> $GITHUB_ENV
+    - run: echo "ROM_PATH=$(cd tests/parse_executable && cargo run --target x86_64-unknown-linux-gnu -Zbuild-std ../pass/results.json)" >> $GITHUB_ENV
     - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} pass.gba
     - run: cargo install gbafix
     - run: gbafix pass.gba
@@ -40,7 +40,7 @@ jobs:
         components: rust-src
     - run: sudo apt-get install binutils-arm-none-eabi
     - run: cd tests/ignore && cargo test --no-run --message-format=json | tee results.json
-    - run: echo "ROM_PATH=$(cd tests/parse_executable && cargo run ../ignore/results.json)" >> $GITHUB_ENV
+    - run: echo "ROM_PATH=$(cd tests/parse_executable && cargo run --target x86_64-unknown-linux-gnu -Zbuild-std ../ignore/results.json)" >> $GITHUB_ENV
     - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} ignore.gba
     - run: cargo install gbafix
     - run: gbafix ignore.gba
@@ -60,7 +60,7 @@ jobs:
         components: rust-src
     - run: sudo apt-get install binutils-arm-none-eabi
     - run: cd tests/fail && cargo test --no-run --message-format=json | tee results.json
-    - run: echo "ROM_PATH=$(cd tests/parse_executable && cargo run ../fail/results.json)" >> $GITHUB_ENV
+    - run: echo "ROM_PATH=$(cd tests/parse_executable && cargo run --target x86_64-unknown-linux-gnu -Zbuild-std ../fail/results.json)" >> $GITHUB_ENV
     - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} fail.gba
     - run: cargo install gbafix
     - run: gbafix fail.gba
@@ -80,7 +80,7 @@ jobs:
         components: rust-src
     - run: sudo apt-get install binutils-arm-none-eabi
     - run: cd tests/should_panic_pass && cargo test --no-run --message-format=json | tee results.json
-    - run: echo "ROM_PATH=$(cd tests/parse_executable && cargo run ../should_panic_pass/results.json)" >> $GITHUB_ENV
+    - run: echo "ROM_PATH=$(cd tests/parse_executable && cargo run --target x86_64-unknown-linux-gnu -Zbuild-std ../should_panic_pass/results.json)" >> $GITHUB_ENV
     - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} should_panic_pass.gba
     - run: cargo install gbafix
     - run: gbafix should_panic_pass.gba
@@ -100,7 +100,7 @@ jobs:
         components: rust-src
     - run: sudo apt-get install binutils-arm-none-eabi
     - run: cd tests/should_panic_fail && cargo test --no-run --message-format=json | tee results.json
-    - run: echo "ROM_PATH=$(cd tests/parse_executable && cargo run ../should_panic_fail/results.json)" >> $GITHUB_ENV
+    - run: echo "ROM_PATH=$(cd tests/parse_executable && cargo run --target x86_64-unknown-linux-gnu -Zbuild-std ../should_panic_fail/results.json)" >> $GITHUB_ENV
     - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} should_panic_fail.gba
     - run: cargo install gbafix
     - run: gbafix should_panic_fail.gba
