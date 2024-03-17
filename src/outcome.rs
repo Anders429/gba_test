@@ -473,3 +473,34 @@ impl<Filter, const SIZE: usize> Clone for Window<Filter, SIZE> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{Outcome, OutcomeVariant};
+    use claims::assert_matches;
+    use gba_test_macros::test;
+
+    #[test]
+    fn outcome_into_outcome_variant_passed() {
+        assert_matches!(
+            OutcomeVariant::from(&Outcome::<&str>::Passed),
+            OutcomeVariant::Passed
+        );
+    }
+
+    #[test]
+    fn outcome_into_outcome_variant_failed() {
+        assert_matches!(
+            OutcomeVariant::from(&Outcome::<&str>::Failed("foo")),
+            OutcomeVariant::Failed
+        );
+    }
+
+    #[test]
+    fn outcome_into_outcome_variant_ignored() {
+        assert_matches!(
+            OutcomeVariant::from(&Outcome::<&str>::Ignored),
+            OutcomeVariant::Ignored
+        );
+    }
+}
