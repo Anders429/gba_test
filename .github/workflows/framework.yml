@@ -20,7 +20,7 @@ jobs:
         components: rust-src
     - run: sudo apt-get install binutils-arm-none-eabi
     - run: cargo test --no-run --message-format=json | tee results.json
-    - run: echo "ROM_PATH=$(cd tests/parse_executable && cargo run --target x86_64-pc-windows-msvc -Zbuild-std ../../results.json )" >> $GITHUB_ENV
+    - run: echo "ROM_PATH=$(cd tests/parse_executable && cargo run --target x86_64-unknown-linux-gnu -Zbuild-std ../../results.json )" >> $GITHUB_ENV
     - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} test.gba
     - run: cargo install gbafix
     - run: gbafix test.gba
