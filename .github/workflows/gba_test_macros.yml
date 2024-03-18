@@ -1,4 +1,4 @@
-name: Macros
+name: gba_test_macros
 
 on:
   push:
@@ -16,14 +16,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@nightly
-    - run: cd macros && cargo test
+    - run: cd gba_test_macros && cargo test
 
   check:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@nightly
-    - run: cd macros && cargo check
+    - run: cd gba_test_macros && cargo check
 
   clippy:
     runs-on: ubuntu-latest
@@ -32,7 +32,7 @@ jobs:
     - uses: dtolnay/rust-toolchain@nightly
       with:
         components: clippy
-    - run: cd macros && cargo clippy -- --deny warnings
+    - run: cd gba_test_macros && cargo clippy -- --deny warnings
 
   fmt:
     runs-on: ubuntu-latest
@@ -41,4 +41,4 @@ jobs:
     - uses: dtolnay/rust-toolchain@nightly
       with:
         components: rustfmt
-    - run: cd macros && cargo fmt -- --check
+    - run: cd gba_test_macros && cargo fmt -- --check
