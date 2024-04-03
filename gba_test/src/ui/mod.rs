@@ -10,11 +10,7 @@ mod cursor;
 mod entry;
 mod font;
 
-use crate::{
-    outcome,
-    outcome::{Outcome, Outcomes},
-    test_case::TestCase,
-};
+use crate::{test_case::TestCase, tests, tests::TestOutcomes, Outcome};
 use core::{arch::asm, cmp::min, fmt::Write};
 use cursor::Cursor;
 
@@ -149,10 +145,10 @@ fn draw_test_outcomes<'a, TestOutcomes>(
 }
 
 enum Page<'a, const SIZE: usize> {
-    All(&'a mut outcome::Window<outcome::All, SIZE>),
-    Failed(&'a mut outcome::Window<outcome::Failed, SIZE>),
-    Passed(&'a mut outcome::Window<outcome::Passed, SIZE>),
-    Ignored(&'a mut outcome::Window<outcome::Ignored, SIZE>),
+    All(&'a mut tests::Window<tests::All, SIZE>),
+    Failed(&'a mut tests::Window<tests::Failed, SIZE>),
+    Passed(&'a mut tests::Window<tests::Passed, SIZE>),
+    Ignored(&'a mut tests::Window<tests::Ignored, SIZE>),
 }
 
 impl<const SIZE: usize> Page<'_, SIZE> {
@@ -184,7 +180,7 @@ impl<const SIZE: usize> Page<'_, SIZE> {
     }
 }
 
-pub(crate) fn run(tests: &'static [&'static dyn TestCase], outcomes: &Outcomes) -> ! {
+pub(crate) fn run(test_outcomes: TestOutcomes) -> ! {
     // Enable BG0 and BG1.
     unsafe {
         BG0CNT.write_volatile(8 << 8);
@@ -195,27 +191,25 @@ pub(crate) fn run(tests: &'static [&'static dyn TestCase], outcomes: &Outcomes) 
     load_ui_tiles();
 
     // Test selection.
-    let all_length = tests.len();
-    let failed_length = outcomes
-        .iter_outcomes()
-        .filter(|outcome| matches!(outcome, Outcome::Failed(_)))
+    let all_length = test_outcomes.iter().count();
+    let failed_length = test_outcomes
+        .iter()
+        .filter(|(_, outcome)| matches!(outcome, Outcome::Failed(_)))
         .count();
-    let passed_length = outcomes
-        .iter_outcomes()
-        .filter(|outcome| matches!(outcome, Outcome::Passed))
+    let passed_length = test_outcomes
+        .iter()
+        .filter(|(_, outcome)| matches!(outcome, Outcome::Passed))
         .count();
-    let ignored_length = outcomes
-        .iter_outcomes()
-        .filter(|outcome| matches!(outcome, Outcome::Ignored))
+    let ignored_length = test_outcomes
+        .iter()
+        .filter(|(_, outcome)| matches!(outcome, Outcome::Ignored))
         .count();
     let lengths = [all_length, failed_length, passed_length, ignored_length];
-    let mut all_window = outcome::Window::<outcome::All, 18>::new(tests, outcomes, all_length);
-    let mut failed_window =
-        outcome::Window::<outcome::Failed, 18>::new(tests, outcomes, failed_length);
-    let mut passed_window =
-        outcome::Window::<outcome::Passed, 18>::new(tests, outcomes, passed_length);
+    let mut all_window = tests::Window::<tests::All, 18>::new(&test_outcomes, all_length);
+    let mut failed_window = tests::Window::<tests::Failed, 18>::new(&test_outcomes, failed_length);
+    let mut passed_window = tests::Window::<tests::Passed, 18>::new(&test_outcomes, passed_length);
     let mut ignored_window =
-        outcome::Window::<outcome::Ignored, 18>::new(tests, outcomes, ignored_length);
+        tests::Window::<tests::Ignored, 18>::new(&test_outcomes, ignored_length);
     let mut page = Page::All(&mut all_window);
     let mut all_index = 0;
     let mut failed_index = 0;

@@ -4,31 +4,32 @@
 //! code here should only ever be run on a Game Boy Advance, and the safety considerations do not
 //! apply for other targets.
 
-use crate::{test_case::Ignore, ui, Outcome, Outcomes, ShouldPanic, TestCase};
-use core::{arch::asm, fmt::Display, panic::PanicInfo, ptr::addr_of};
+use crate::{test_case::Ignore, ui, Outcome, ShouldPanic, TestCase, Tests};
+use core::{arch::asm, fmt::Display, mem::MaybeUninit, panic::PanicInfo, ptr::addr_of};
 
 // TODO: Make these more type-safe.
 const DISPSTAT: *mut u16 = 0x0400_0004 as *mut u16;
 const IME: *mut bool = 0x0400_0208 as *mut bool;
 const IE: *mut u16 = 0x0400_0200 as *mut u16;
 
-/// The index of the next test to be run.
 #[link_section = ".noinit"]
-static mut INDEX: usize = 0;
-
-/// The current test being run.
-static mut CURRENT_TEST: Option<&'static dyn TestCase> = None;
-
+static mut INITIALIZED: bool = false;
 #[link_section = ".noinit"]
-static mut OUTCOMES: Option<Outcomes> = None;
+static mut TESTS: MaybeUninit<Tests> = MaybeUninit::uninit();
 
+/// Stores the outcome of the current test.
+///
+/// # Panics
+/// If `TESTS` has not been initialized. Also if there is no currently active test to have an
+/// outcome be reported on.
 fn store_outcome<Data>(outcome: Outcome<Data>)
 where
     Data: Display,
 {
-    // TODO: Handle cases where `OUTCOMES` is not present.
-    if let Some(outcomes) = unsafe { OUTCOMES.as_mut() } {
-        outcomes.push_outcome(outcome);
+    if unsafe { INITIALIZED } {
+        unsafe { TESTS.assume_init_mut().complete_test(outcome) };
+    } else {
+        panic!("attempted to write outcome, but `TESTS` is not initialized");
     }
 }
 
@@ -85,53 +86,51 @@ fn report_result(result: usize) {
 /// continue being run after the current test panics.
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    // TODO: Need to handle when this is called outside of the test runner.
-    if let Some(test) = unsafe { CURRENT_TEST.take() } {
-        // Panicked while executing a test. Handle the result.
-        match test.should_panic() {
-            ShouldPanic::No => {
-                log::info!("test failed");
-                store_outcome(Outcome::Failed(info));
+    if unsafe { INITIALIZED } {
+        if let Some(test) = unsafe { TESTS.assume_init_ref().current_test() } {
+            // Panicked while executing a test. Handle the result.
+            match test.should_panic() {
+                ShouldPanic::No => {
+                    log::info!("test failed");
+                    store_outcome(Outcome::Failed(info));
+                }
+                ShouldPanic::Yes => {
+                    log::info!("test passed");
+                    store_outcome(Outcome::<&str>::Passed);
+                }
             }
-            ShouldPanic::Yes => {
-                log::info!("test passed");
-                store_outcome(Outcome::<&str>::Passed);
-            }
-        }
 
-        // Soft resetting the system allows us to recover from the panicked state and continue testing.
-        reset()
-    } else {
-        // Panicked outside of executing a test.
-        //
-        // For now, just log the panic. In the future we will display it on screen as well.
-        log::error!("panicked at: {info}");
-        loop {}
+            // Soft resetting the system allows us to recover from the panicked state and continue testing.
+            reset()
+        }
     }
+
+    // Panicked outside of executing a test.
+    //
+    // For now, just log the panic. In the future we will display it on screen as well.
+    log::error!("panicked at: {info}");
+    loop {}
 }
 
 /// A test runner to execute tests as a Game Boy Advance ROM.
 pub fn runner(tests: &'static [&'static dyn TestCase]) {
     mgba_log::init();
 
-    if unsafe { OUTCOMES.is_none() } {
+    if unsafe { !INITIALIZED } {
+        // Use the remaining unused space in ewram as our data heap.
         extern "C" {
             static __ewram_data_end: u8;
         }
         unsafe {
-            OUTCOMES = Some(Outcomes::new(
+            TESTS = MaybeUninit::new(Tests::new(
+                tests,
                 (addr_of!(__ewram_data_end) as usize) as *mut u8,
-                tests.len(),
             ));
+            INITIALIZED = true;
         }
     }
 
-    let index = unsafe { INDEX };
-    for test in &tests[index..] {
-        unsafe {
-            INDEX += 1;
-            CURRENT_TEST = Some(*test);
-        }
+    if let Some(test) = unsafe { TESTS.assume_init_mut().start_test() } {
         log::info!("running test: {}", test.name());
         match test.ignore() {
             Ignore::Yes => {
@@ -153,10 +152,14 @@ pub fn runner(tests: &'static [&'static dyn TestCase]) {
             }
         }
         // Reset the system to ensure tests are not accidentally reliant on each other.
+        //
+        // Note that this will reset the program. This stops execution at this point and calls
+        // `main()` all over again.
         reset();
     }
 
     log::info!("tests finished");
+    let outcomes = unsafe { TESTS.assume_init_ref() }.outcomes();
 
     // Enable interrupts.
     unsafe {
@@ -171,13 +174,11 @@ pub fn runner(tests: &'static [&'static dyn TestCase]) {
     // the next vblank. On test emulators (such as `mgba-rom-test`), this will exit the emulator
     // with the `return_value` as the program's exit code if the emulator has been configured to
     // listen for SWI 0x27 with the exit code on `r0`.
-    report_result(unsafe {
-        OUTCOMES
-            .as_ref()
-            .unwrap()
-            .iter_outcomes()
-            .any(|outcome| matches!(outcome, Outcome::Failed(_)))
-    } as usize);
+    report_result(
+        outcomes
+            .iter()
+            .any(|(_, outcome)| matches!(outcome, Outcome::Failed(_))) as usize,
+    );
 
-    ui::run(tests, unsafe { OUTCOMES.as_ref().unwrap() })
+    ui::run(outcomes)
 }

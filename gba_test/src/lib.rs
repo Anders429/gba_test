@@ -8,10 +8,12 @@
 #[cfg(test)]
 extern crate self as gba_test;
 
+mod alignment;
 mod outcome;
 mod runner;
 mod runtime;
 mod test_case;
+mod tests;
 mod ui;
 
 #[cfg(feature = "macros")]
@@ -20,7 +22,8 @@ pub use gba_test_macros::test;
 pub use runner::runner;
 pub use test_case::{Ignore, ShouldPanic, Test, TestCase};
 
-use outcome::{Outcome, Outcomes};
+use outcome::Outcome;
+use tests::Tests;
 
 #[cfg(test)]
 #[no_mangle]
