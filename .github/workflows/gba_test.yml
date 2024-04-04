@@ -36,6 +36,8 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@nightly
+      with:
+        components: rust-src
     - run: cd gba_test && cargo check
 
   # clippy:
