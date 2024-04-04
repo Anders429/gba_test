@@ -1,5 +1,5 @@
 use super::{cursor::Cursor, wait_for_vblank, KEYINPUT, TEXT_ENTRIES};
-use crate::{outcome::Outcome, test_case::TestCase};
+use crate::{Outcome, test_case::TestCase};
 use core::fmt::Write;
 
 pub(super) fn show(test_case: &dyn TestCase, outcome: Outcome<&'static str>) {

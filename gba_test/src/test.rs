@@ -1,4 +1,4 @@
-use crate::{alignment::Align4, outcome::Outcome, test_case::TestCase};
+use crate::{alignment::Align4, test_case::TestCase};
 use core::{
     fmt,
     fmt::{Display, Write},
@@ -7,6 +7,27 @@ use core::{
 };
 
 const EWRAM_MAX: usize = 0x0204_0000;
+
+/// The outcome of a test.
+#[derive(Debug)]
+pub(crate) enum Outcome<Data> {
+    /// The test passed.
+    Passed,
+    /// The test failed.
+    Failed(Data),
+    /// The test was excluded from the test run.
+    Ignored,
+}
+
+impl<Data> Outcome<Data> {
+    pub(crate) fn as_str(&self) -> &str {
+        match self {
+            Self::Passed => "ok",
+            Self::Failed(_) => "FAILED",
+            Self::Ignored => "ignored",
+        }
+    }
+}
 
 /// The outcome of a test, not including any associated data.
 ///
