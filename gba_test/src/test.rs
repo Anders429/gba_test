@@ -253,7 +253,7 @@ impl Tests {
 
         TestOutcomes {
             tests: self.tests,
-            outcomes: unsafe {self.outcomes.sub(self.tests.len())},
+            outcomes: unsafe { self.outcomes.sub(self.tests.len()) },
             data: self.outcomes.align_forward().cast(),
         }
     }

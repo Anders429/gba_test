@@ -11,8 +11,8 @@ extern crate self as gba_test;
 mod alignment;
 mod runner;
 mod runtime;
-mod test_case;
 mod test;
+mod test_case;
 mod ui;
 
 #[cfg(feature = "macros")]

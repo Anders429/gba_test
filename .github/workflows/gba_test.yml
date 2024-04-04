@@ -30,3 +30,28 @@ jobs:
         read-register: 'r0'
         rom-path: test.gba
         success-code: 0  # Pass
+
+  check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@nightly
+    - run: cd gba_test && cargo check
+
+  # clippy:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - uses: actions/checkout@v4
+  #   - uses: dtolnay/rust-toolchain@nightly
+  #     with:
+  #       components: clippy
+  #   - run: cd gba_test && cargo clippy -- --deny warnings
+
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@nightly
+      with:
+        components: rustfmt
+    - run: cd gba_test && cargo fmt -- --check

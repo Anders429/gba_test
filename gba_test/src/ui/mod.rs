@@ -10,7 +10,7 @@ mod cursor;
 mod entry;
 mod font;
 
-use crate::{test_case::TestCase, test, test::TestOutcomes, Outcome};
+use crate::{test, test::TestOutcomes, test_case::TestCase, Outcome};
 use core::{arch::asm, cmp::min, fmt::Write};
 use cursor::Cursor;
 
@@ -208,8 +208,7 @@ pub(crate) fn run(test_outcomes: TestOutcomes) -> ! {
     let mut all_window = test::Window::<test::All, 18>::new(&test_outcomes, all_length);
     let mut failed_window = test::Window::<test::Failed, 18>::new(&test_outcomes, failed_length);
     let mut passed_window = test::Window::<test::Passed, 18>::new(&test_outcomes, passed_length);
-    let mut ignored_window =
-        test::Window::<test::Ignored, 18>::new(&test_outcomes, ignored_length);
+    let mut ignored_window = test::Window::<test::Ignored, 18>::new(&test_outcomes, ignored_length);
     let mut page = Page::All(&mut all_window);
     let mut all_index = 0;
     let mut failed_index = 0;
