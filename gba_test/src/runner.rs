@@ -113,7 +113,7 @@ fn panic(info: &PanicInfo) -> ! {
 }
 
 /// A test runner to execute tests as a Game Boy Advance ROM.
-pub fn runner(tests: &'static [&'static dyn TestCase]) {
+pub fn runner(tests: &'static [&'static dyn TestCase]) -> ! {
     mgba_log::init();
 
     if unsafe { !INITIALIZED } {

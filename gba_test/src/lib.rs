@@ -26,6 +26,5 @@ use test::{Outcome, Tests};
 #[cfg(test)]
 #[no_mangle]
 pub fn main() {
-    test_harness();
-    loop {}
+    test_harness()
 }

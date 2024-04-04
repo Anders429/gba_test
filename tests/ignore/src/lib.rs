@@ -13,8 +13,7 @@ pub fn add(left: usize, right: usize) -> usize {
 #[cfg(test)]
 #[no_mangle]
 pub fn main() {
-    test_harness();
-    loop {}
+    test_harness()
 }
 
 #[cfg(test)]
