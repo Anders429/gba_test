@@ -17,25 +17,30 @@ pub(super) fn show(test_case: &dyn TestCase, outcome: Outcome<&'static str>) {
     write!(cursor, "{}\n", test_case.name());
 
     // Write test result.
-    let message = match outcome {
-        Outcome::Passed => {
-            cursor.set_palette(1);
-            "The test passed!"
-        }
-        Outcome::Ignored => {
-            cursor.set_palette(2);
-            "The test was ignored."
-        }
-        Outcome::Failed(message) => {
-            cursor.set_palette(3);
-            message
-        }
+    let palette = match outcome {
+        Outcome::Passed => 1,
+        Outcome::Ignored | Outcome::IgnoredWithMessage(_) => 2,
+        Outcome::Failed(_) => 3,
     };
+    cursor.set_palette(palette);
     write!(cursor, "{}\n", outcome.as_str());
 
     // Write message.
     cursor.set_palette(0);
-    write!(cursor, "{}", message);
+    match outcome {
+        Outcome::Passed => {
+            write!(cursor, "The test passed!");
+        }
+        Outcome::Ignored => {
+            write!(cursor, "The test was ignored.");
+        }
+        Outcome::IgnoredWithMessage(message) => {
+            write!(cursor, "The test was ignored:\n{}", message);
+        }
+        Outcome::Failed(message) => {
+            write!(cursor, "{}", message);
+        }
+    }
 
     // Wait for input.
     loop {

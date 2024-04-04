@@ -15,6 +15,8 @@ pub enum Ignore {
     No,
     /// The test should not be run.
     Yes,
+    /// The test should not be run, and a message should be displayed.
+    YesWithMessage(&'static str),
 }
 
 #[derive(Clone, Copy, Debug)]

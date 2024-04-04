@@ -137,6 +137,10 @@ pub fn runner(tests: &'static [&'static dyn TestCase]) -> ! {
                 log::info!("test ignored");
                 store_outcome(Outcome::<&str>::Ignored);
             }
+            Ignore::YesWithMessage(message) => {
+                log::info!("test ignored with message: {}", message);
+                store_outcome(Outcome::<&str>::IgnoredWithMessage(message));
+            }
             Ignore::No => {
                 test.run();
                 match test.should_panic() {

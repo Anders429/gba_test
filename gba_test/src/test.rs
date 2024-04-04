@@ -17,6 +17,8 @@ pub(crate) enum Outcome<Data> {
     Failed(Data),
     /// The test was excluded from the test run.
     Ignored,
+    /// The test was excluded from the test run with a message to be displayed.
+    IgnoredWithMessage(&'static str),
 }
 
 impl<Data> Outcome<Data> {
@@ -24,7 +26,7 @@ impl<Data> Outcome<Data> {
         match self {
             Self::Passed => "ok",
             Self::Failed(_) => "FAILED",
-            Self::Ignored => "ignored",
+            Self::Ignored | Self::IgnoredWithMessage(_) => "ignored",
         }
     }
 }
@@ -41,6 +43,8 @@ enum OutcomeVariant {
     Failed,
     /// The test was excluded from the test run.
     Ignored,
+    /// The test was excluded from the test run with a message to be displayed.
+    IgnoredWithMessage,
 }
 
 impl<'a, Data> From<&'a Outcome<Data>> for OutcomeVariant {
@@ -49,6 +53,7 @@ impl<'a, Data> From<&'a Outcome<Data>> for OutcomeVariant {
             Outcome::Passed => Self::Passed,
             Outcome::Failed(_) => Self::Failed,
             Outcome::Ignored => Self::Ignored,
+            Outcome::IgnoredWithMessage(_) => Self::IgnoredWithMessage,
         }
     }
 }
@@ -232,11 +237,24 @@ impl Tests {
             self.outcomes.write((&outcome).into());
             self.outcomes = self.outcomes.add(1);
         }
-        if let Outcome::Failed(data) = outcome {
-            log::info!("data: {}", data);
-            let mut error_message = ErrorMessage::new(&mut self.data);
-            write!(error_message, "{}", data)
-                .expect("not enough space to store error message: {data}");
+        match outcome {
+            Outcome::Failed(data) => {
+                log::info!("data: {}", data);
+                let mut error_message = ErrorMessage::new(&mut self.data);
+                write!(error_message, "{}", data)
+                    .expect("not enough space to store error message: {data}");
+            }
+            Outcome::IgnoredWithMessage(message) => {
+                log::info!("data: {:p}", message);
+                unsafe {
+                    if self.data.cast::<&'static str>().add(1) as usize > EWRAM_MAX {
+                        panic!("not enough space to store ignore message location");
+                    }
+                    self.data.cast::<&'static str>().write(message);
+                    self.data = self.data.cast::<&'static str>().add(1).cast();
+                }
+            }
+            _ => {}
         }
 
         self.index += 1;
@@ -291,6 +309,14 @@ impl Iterator for TestOutcomesIter {
             let outcome = match outcome_variant {
                 OutcomeVariant::Passed => Outcome::Passed,
                 OutcomeVariant::Ignored => Outcome::Ignored,
+                OutcomeVariant::IgnoredWithMessage => {
+                    // Extract the message location.
+                    unsafe {
+                        let message = self.data.cast::<&'static str>().read();
+                        self.data = self.data.cast::<&'static str>().add(1).cast();
+                        Outcome::IgnoredWithMessage(message)
+                    }
+                }
                 OutcomeVariant::Failed => {
                     // Extract the error message.
                     unsafe {
@@ -341,7 +367,7 @@ pub(crate) struct Ignored;
 
 impl Filter for Ignored {
     fn filter(outcome: &Outcome<&'static str>) -> bool {
-        matches!(outcome, &Outcome::Ignored)
+        matches!(outcome, &Outcome::Ignored | &Outcome::IgnoredWithMessage(_))
     }
 }
 
@@ -388,6 +414,21 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
         }
     }
 
+    fn next_ignored_message(data: &mut *const (usize, u8)) -> &'static str {
+        unsafe {
+            let message = data.cast::<&'static str>().read();
+            *data = data.cast::<&'static str>().add(1).cast();
+            message
+        }
+    }
+
+    fn prev_ignored_message(data: &mut *const (usize, u8)) -> &'static str {
+        unsafe {
+            *data = data.cast::<&'static str>().sub(1).cast();
+            data.cast::<&'static str>().read()
+        }
+    }
+
     fn next_unfiltered(&mut self) -> Option<(&'static dyn TestCase, Outcome<&'static str>)> {
         if self.filtered_index == self.filtered_length.saturating_sub(SIZE) {
             return None;
@@ -397,20 +438,25 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
             self.test_case = self.test_case.add(1);
             self.outcome = self.outcome.add(1);
         }
-        // TODO: This doesn't work with filters, because it treats some displayed values as though they are still undisplayed, resulting in the list scrolling too far.
         let outcome = match unsafe { self.outcome.add(17).read() } {
             OutcomeVariant::Passed => Outcome::Passed,
             OutcomeVariant::Ignored => Outcome::Ignored,
+            OutcomeVariant::IgnoredWithMessage => Outcome::IgnoredWithMessage(
+                Self::next_ignored_message(&mut self.error_message_back),
+            ),
             OutcomeVariant::Failed => {
                 Outcome::Failed(Self::next_error_message(&mut self.error_message_back))
             }
         };
         // Check if the dropped outcome in the window requires moving the error message pointer.
-        if matches!(
-            unsafe { self.outcome.sub(1).read() },
-            OutcomeVariant::Failed
-        ) {
-            Self::next_error_message(&mut self.error_message_front);
+        match unsafe { self.outcome.sub(1).read() } {
+            OutcomeVariant::Failed => {
+                Self::next_error_message(&mut self.error_message_front);
+            }
+            OutcomeVariant::IgnoredWithMessage => {
+                Self::next_ignored_message(&mut self.error_message_front);
+            }
+            _ => {}
         }
 
         self.index += 1;
@@ -430,16 +476,22 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
         let outcome = match unsafe { self.outcome.read() } {
             OutcomeVariant::Passed => Outcome::Passed,
             OutcomeVariant::Ignored => Outcome::Ignored,
+            OutcomeVariant::IgnoredWithMessage => Outcome::IgnoredWithMessage(
+                Self::prev_ignored_message(&mut self.error_message_front),
+            ),
             OutcomeVariant::Failed => {
                 Outcome::Failed(Self::prev_error_message(&mut self.error_message_front))
             }
         };
         // Check if the dropped outcome in the window requires moving the error message pointer.
-        if matches!(
-            unsafe { self.outcome.add(SIZE).read() },
-            OutcomeVariant::Failed
-        ) {
-            Self::prev_error_message(&mut self.error_message_back);
+        match unsafe { self.outcome.add(SIZE).read() } {
+            OutcomeVariant::Failed => {
+                Self::prev_error_message(&mut self.error_message_back);
+            }
+            OutcomeVariant::IgnoredWithMessage => {
+                Self::prev_ignored_message(&mut self.error_message_back);
+            }
+            _ => {}
         }
 
         self.index -= 1;
@@ -467,6 +519,9 @@ where
             let outcome = match unsafe { outcomes.read() } {
                 OutcomeVariant::Passed => Outcome::Passed,
                 OutcomeVariant::Ignored => Outcome::Ignored,
+                OutcomeVariant::IgnoredWithMessage => {
+                    Outcome::IgnoredWithMessage(Self::next_ignored_message(&mut error_messages))
+                }
                 OutcomeVariant::Failed => {
                     Outcome::Failed(Self::next_error_message(&mut error_messages))
                 }

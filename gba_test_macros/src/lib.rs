@@ -31,11 +31,12 @@
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
-use syn::{parse, Attribute, Ident, ItemFn};
+use syn::{parse, token, Attribute, ExprParen, Ident, ItemFn, Meta};
 
 /// Structured representation of the configuration attributes provided for a test.
 struct Attributes {
     ignore: Ident,
+    ignore_message: Option<ExprParen>,
     should_panic: Ident,
 }
 
@@ -44,6 +45,7 @@ impl Attributes {
     fn new() -> Self {
         Self {
             ignore: Ident::new("No", Span::call_site()),
+            ignore_message: None,
             should_panic: Ident::new("No", Span::call_site()),
         }
     }
@@ -57,7 +59,16 @@ impl From<&Vec<Attribute>> for Attributes {
             if let Some(ident) = attribute.path().get_ident() {
                 match ident.to_string().as_str() {
                     "ignore" => {
-                        result.ignore = Ident::new("Yes", Span::call_site());
+                        if let Meta::NameValue(name_value) = &attribute.meta {
+                            result.ignore = Ident::new("YesWithMessage", Span::call_site());
+                            result.ignore_message = Some(ExprParen {
+                                attrs: Vec::new(),
+                                paren_token: token::Paren::default(),
+                                expr: Box::new(name_value.value.clone()),
+                            });
+                        } else {
+                            result.ignore = Ident::new("Yes", Span::call_site());
+                        }
                     }
                     "should_panic" => {
                         result.should_panic = Ident::new("Yes", Span::call_site());
@@ -93,6 +104,7 @@ pub fn test(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let name = function.sig.ident.clone();
     let attributes = Attributes::from(&function.attrs);
     let ignore = attributes.ignore;
+    let ignore_message = attributes.ignore_message;
     let should_panic = attributes.should_panic;
 
     TokenStream::from(quote! {
@@ -105,7 +117,7 @@ pub fn test(_attr: TokenStream, item: TokenStream) -> TokenStream {
             const TEST: ::gba_test::Test = ::gba_test::Test {
                 name: module_path!(),
                 test: #name,
-                ignore: ::gba_test::Ignore::#ignore,
+                ignore: ::gba_test::Ignore::#ignore #ignore_message,
                 should_panic: ::gba_test::ShouldPanic::#should_panic,
             };
         }
