@@ -632,6 +632,26 @@ mod tests {
     use gba_test_macros::test;
 
     #[test]
+    fn outcome_as_str_passed() {
+        assert_eq!(Outcome::<()>::Passed.as_str(), "ok");
+    }
+
+    #[test]
+    fn outcome_as_str_failed() {
+        assert_eq!(Outcome::<()>::Failed(()).as_str(), "FAILED");
+    }
+
+    #[test]
+    fn outcome_as_str_ignored() {
+        assert_eq!(Outcome::<()>::Ignored.as_str(), "ignored");
+    }
+
+    #[test]
+    fn outcome_as_str_ignored_with_message() {
+        assert_eq!(Outcome::<()>::IgnoredWithMessage("").as_str(), "ignored");
+    }
+
+    #[test]
     fn outcome_into_outcome_variant_passed() {
         assert_matches!(
             OutcomeVariant::from(&Outcome::<&str>::Passed),
