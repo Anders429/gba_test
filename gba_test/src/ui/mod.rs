@@ -138,7 +138,17 @@ fn draw_test_outcomes<'a, TestOutcomes>(
         };
 
         cursor.set_palette(0);
-        write!(cursor, "\n{}: ", test.name());
+        if test.name().chars().count() < 22 {
+            write!(cursor, "\n{}: ", test.name());
+        } else {
+            // TODO: Make this indexing more robust. It needs to account for unicode, not just ascii.
+            write!(
+                cursor,
+                "\n{}..{}: ",
+                &test.name()[..9],
+                &test.name()[(test.name().len() - 10)..]
+            );
+        }
         cursor.set_palette(palette);
         write!(cursor, "{}", outcome.as_str());
     }
