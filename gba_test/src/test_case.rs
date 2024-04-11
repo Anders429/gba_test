@@ -47,6 +47,9 @@ pub trait TestCase {
 
     /// Whether the test is expected to panic.
     fn should_panic(&self) -> ShouldPanic;
+
+    /// Returns the ignore message, if it exists.
+    fn message(&self) -> Option<&'static str>;
 }
 
 /// A standard test.
@@ -89,5 +92,13 @@ impl TestCase for Test {
 
     fn should_panic(&self) -> ShouldPanic {
         self.should_panic
+    }
+
+    fn message(&self) -> Option<&'static str> {
+        if let Ignore::YesWithMessage(message) = self.ignore {
+            Some(message)
+        } else {
+            None
+        }
     }
 }

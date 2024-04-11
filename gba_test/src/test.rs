@@ -244,16 +244,6 @@ impl Tests {
                 write!(error_message, "{}", data)
                     .expect("not enough space to store error message: {data}");
             }
-            Outcome::IgnoredWithMessage(message) => {
-                log::info!("data: {:p}", message);
-                unsafe {
-                    if self.data.cast::<&'static str>().add(1) as usize > EWRAM_MAX {
-                        panic!("not enough space to store ignore message location");
-                    }
-                    self.data.cast::<&'static str>().write(message);
-                    self.data = self.data.cast::<&'static str>().add(1).cast();
-                }
-            }
             _ => {}
         }
 
@@ -310,12 +300,7 @@ impl Iterator for TestOutcomesIter {
                 OutcomeVariant::Passed => Outcome::Passed,
                 OutcomeVariant::Ignored => Outcome::Ignored,
                 OutcomeVariant::IgnoredWithMessage => {
-                    // Extract the message location.
-                    unsafe {
-                        let message = self.data.cast::<&'static str>().read();
-                        self.data = self.data.cast::<&'static str>().add(1).cast();
-                        Outcome::IgnoredWithMessage(message)
-                    }
+                    Outcome::IgnoredWithMessage(test.message().unwrap())
                 }
                 OutcomeVariant::Failed => {
                     // Extract the error message.
@@ -414,21 +399,6 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
         }
     }
 
-    fn next_ignored_message(data: &mut *const (usize, u8)) -> &'static str {
-        unsafe {
-            let message = data.cast::<&'static str>().read();
-            *data = data.cast::<&'static str>().add(1).cast();
-            message
-        }
-    }
-
-    fn prev_ignored_message(data: &mut *const (usize, u8)) -> &'static str {
-        unsafe {
-            *data = data.cast::<&'static str>().sub(1).cast();
-            data.cast::<&'static str>().read()
-        }
-    }
-
     fn next_unfiltered(&mut self) -> Option<(&'static dyn TestCase, Outcome<&'static str>)> {
         if self.filtered_index == self.filtered_length.saturating_sub(SIZE) {
             return None;
@@ -441,9 +411,9 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
         let outcome = match unsafe { self.outcome.add(17).read() } {
             OutcomeVariant::Passed => Outcome::Passed,
             OutcomeVariant::Ignored => Outcome::Ignored,
-            OutcomeVariant::IgnoredWithMessage => Outcome::IgnoredWithMessage(
-                Self::next_ignored_message(&mut self.error_message_back),
-            ),
+            OutcomeVariant::IgnoredWithMessage => {
+                Outcome::IgnoredWithMessage(unsafe { self.test_case.read() }.message().unwrap())
+            }
             OutcomeVariant::Failed => {
                 Outcome::Failed(Self::next_error_message(&mut self.error_message_back))
             }
@@ -452,9 +422,6 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
         match unsafe { self.outcome.sub(1).read() } {
             OutcomeVariant::Failed => {
                 Self::next_error_message(&mut self.error_message_front);
-            }
-            OutcomeVariant::IgnoredWithMessage => {
-                Self::next_ignored_message(&mut self.error_message_front);
             }
             _ => {}
         }
@@ -476,9 +443,9 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
         let outcome = match unsafe { self.outcome.read() } {
             OutcomeVariant::Passed => Outcome::Passed,
             OutcomeVariant::Ignored => Outcome::Ignored,
-            OutcomeVariant::IgnoredWithMessage => Outcome::IgnoredWithMessage(
-                Self::prev_ignored_message(&mut self.error_message_front),
-            ),
+            OutcomeVariant::IgnoredWithMessage => {
+                Outcome::IgnoredWithMessage(unsafe { self.test_case.read() }.message().unwrap())
+            }
             OutcomeVariant::Failed => {
                 Outcome::Failed(Self::prev_error_message(&mut self.error_message_front))
             }
@@ -487,9 +454,6 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
         match unsafe { self.outcome.add(SIZE).read() } {
             OutcomeVariant::Failed => {
                 Self::prev_error_message(&mut self.error_message_back);
-            }
-            OutcomeVariant::IgnoredWithMessage => {
-                Self::prev_ignored_message(&mut self.error_message_back);
             }
             _ => {}
         }
@@ -519,9 +483,7 @@ where
             let outcome = match unsafe { outcomes.read() } {
                 OutcomeVariant::Passed => Outcome::Passed,
                 OutcomeVariant::Ignored => Outcome::Ignored,
-                OutcomeVariant::IgnoredWithMessage => {
-                    Outcome::IgnoredWithMessage(Self::next_ignored_message(&mut error_messages))
-                }
+                OutcomeVariant::IgnoredWithMessage => Outcome::IgnoredWithMessage(""),
                 OutcomeVariant::Failed => {
                     Outcome::Failed(Self::next_error_message(&mut error_messages))
                 }
