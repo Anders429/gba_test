@@ -41,9 +41,13 @@ where
 #[instruction_set(arm::t32)]
 fn reset() -> ! {
     unsafe {
+        // Resets everything besides EWRAM (corresponding to bit 0x01, which is why that bit is
+        // unset).
         asm! {
-            // "ldr r0, #128",
-            // "swi #0x01",
+            "swi #0x01",
+            in("r0") 0xFE,
+        }
+        asm! {
             "swi #0x00",
             options(noreturn),
         }
