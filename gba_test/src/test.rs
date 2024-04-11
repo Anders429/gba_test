@@ -17,8 +17,6 @@ pub(crate) enum Outcome<Data> {
     Failed(Data),
     /// The test was excluded from the test run.
     Ignored,
-    /// The test was excluded from the test run with a message to be displayed.
-    IgnoredWithMessage(&'static str),
 }
 
 impl<Data> Outcome<Data> {
@@ -26,7 +24,7 @@ impl<Data> Outcome<Data> {
         match self {
             Self::Passed => "ok",
             Self::Failed(_) => "FAILED",
-            Self::Ignored | Self::IgnoredWithMessage(_) => "ignored",
+            Self::Ignored => "ignored",
         }
     }
 }
@@ -43,8 +41,6 @@ enum OutcomeVariant {
     Failed,
     /// The test was excluded from the test run.
     Ignored,
-    /// The test was excluded from the test run with a message to be displayed.
-    IgnoredWithMessage,
 }
 
 impl<'a, Data> From<&'a Outcome<Data>> for OutcomeVariant {
@@ -53,7 +49,6 @@ impl<'a, Data> From<&'a Outcome<Data>> for OutcomeVariant {
             Outcome::Passed => Self::Passed,
             Outcome::Failed(_) => Self::Failed,
             Outcome::Ignored => Self::Ignored,
-            Outcome::IgnoredWithMessage(_) => Self::IgnoredWithMessage,
         }
     }
 }
@@ -299,9 +294,6 @@ impl Iterator for TestOutcomesIter {
             let outcome = match outcome_variant {
                 OutcomeVariant::Passed => Outcome::Passed,
                 OutcomeVariant::Ignored => Outcome::Ignored,
-                OutcomeVariant::IgnoredWithMessage => {
-                    Outcome::IgnoredWithMessage(test.message().unwrap())
-                }
                 OutcomeVariant::Failed => {
                     // Extract the error message.
                     unsafe {
@@ -352,7 +344,7 @@ pub(crate) struct Ignored;
 
 impl Filter for Ignored {
     fn filter(outcome: &Outcome<&'static str>) -> bool {
-        matches!(outcome, &Outcome::Ignored | &Outcome::IgnoredWithMessage(_))
+        matches!(outcome, &Outcome::Ignored)
     }
 }
 
@@ -411,9 +403,6 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
         let outcome = match unsafe { self.outcome.add(17).read() } {
             OutcomeVariant::Passed => Outcome::Passed,
             OutcomeVariant::Ignored => Outcome::Ignored,
-            OutcomeVariant::IgnoredWithMessage => {
-                Outcome::IgnoredWithMessage(unsafe { self.test_case.read() }.message().unwrap())
-            }
             OutcomeVariant::Failed => {
                 Outcome::Failed(Self::next_error_message(&mut self.error_message_back))
             }
@@ -443,9 +432,6 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
         let outcome = match unsafe { self.outcome.read() } {
             OutcomeVariant::Passed => Outcome::Passed,
             OutcomeVariant::Ignored => Outcome::Ignored,
-            OutcomeVariant::IgnoredWithMessage => {
-                Outcome::IgnoredWithMessage(unsafe { self.test_case.read() }.message().unwrap())
-            }
             OutcomeVariant::Failed => {
                 Outcome::Failed(Self::prev_error_message(&mut self.error_message_front))
             }
@@ -483,7 +469,6 @@ where
             let outcome = match unsafe { outcomes.read() } {
                 OutcomeVariant::Passed => Outcome::Passed,
                 OutcomeVariant::Ignored => Outcome::Ignored,
-                OutcomeVariant::IgnoredWithMessage => Outcome::IgnoredWithMessage(""),
                 OutcomeVariant::Failed => {
                     Outcome::Failed(Self::next_error_message(&mut error_messages))
                 }
@@ -606,11 +591,6 @@ mod tests {
     #[test]
     fn outcome_as_str_ignored() {
         assert_eq!(Outcome::<()>::Ignored.as_str(), "ignored");
-    }
-
-    #[test]
-    fn outcome_as_str_ignored_with_message() {
-        assert_eq!(Outcome::<()>::IgnoredWithMessage("").as_str(), "ignored");
     }
 
     #[test]

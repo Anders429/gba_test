@@ -133,7 +133,7 @@ fn draw_test_outcomes<'a, TestOutcomes>(
     for (test, outcome) in test_outcomes.take(18) {
         let palette = match outcome {
             Outcome::Passed => 1,
-            Outcome::Ignored | Outcome::IgnoredWithMessage(_) => 2,
+            Outcome::Ignored => 2,
             Outcome::Failed(_) => 3,
         };
 

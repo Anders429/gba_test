@@ -133,13 +133,9 @@ pub fn runner(tests: &'static [&'static dyn TestCase]) -> ! {
     if let Some(test) = unsafe { TESTS.assume_init_mut().start_test() } {
         log::info!("running test: {}", test.name());
         match test.ignore() {
-            Ignore::Yes => {
+            Ignore::Yes | Ignore::YesWithMessage(_) => {
                 log::info!("test ignored");
                 store_outcome(Outcome::<&str>::Ignored);
-            }
-            Ignore::YesWithMessage(message) => {
-                log::info!("test ignored with message: {}", message);
-                store_outcome(Outcome::<&str>::IgnoredWithMessage(message));
             }
             Ignore::No => {
                 test.run();

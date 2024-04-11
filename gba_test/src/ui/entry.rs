@@ -1,5 +1,8 @@
 use super::{cursor::Cursor, wait_for_vblank, KEYINPUT, TEXT_ENTRIES};
-use crate::{test_case::TestCase, Outcome};
+use crate::{
+    test_case::{Ignore, TestCase},
+    Outcome,
+};
 use core::fmt::Write;
 
 pub(super) fn show(test_case: &dyn TestCase, outcome: Outcome<&'static str>) {
@@ -19,7 +22,7 @@ pub(super) fn show(test_case: &dyn TestCase, outcome: Outcome<&'static str>) {
     // Write test result.
     let palette = match outcome {
         Outcome::Passed => 1,
-        Outcome::Ignored | Outcome::IgnoredWithMessage(_) => 2,
+        Outcome::Ignored => 2,
         Outcome::Failed(_) => 3,
     };
     cursor.set_palette(palette);
@@ -32,10 +35,11 @@ pub(super) fn show(test_case: &dyn TestCase, outcome: Outcome<&'static str>) {
             write!(cursor, "The test passed!");
         }
         Outcome::Ignored => {
-            write!(cursor, "The test was ignored.");
-        }
-        Outcome::IgnoredWithMessage(message) => {
-            write!(cursor, "The test was ignored:\n{}", message);
+            if let Some(message) = test_case.message() {
+                write!(cursor, "The test was ignored:\n{}", message);
+            } else {
+                write!(cursor, "The test was ignored.");
+            }
         }
         Outcome::Failed(message) => {
             write!(cursor, "{}", message);
