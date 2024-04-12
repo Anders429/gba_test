@@ -102,3 +102,111 @@ impl TestCase for Test {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{Ignore, ShouldPanic, Test, TestCase};
+    use claims::{assert_matches, assert_none, assert_some_eq};
+    use gba_test_macros::test;
+
+    #[test]
+    fn test_name_split() {
+        let test = Test {
+            name: "foo::bar",
+            test: || {},
+            ignore: Ignore::No,
+            should_panic: ShouldPanic::No,
+        };
+
+        assert_eq!(test.name(), "bar");
+    }
+
+    #[test]
+    fn test_name_no_split() {
+        let test = Test {
+            name: "foo",
+            test: || {},
+            ignore: Ignore::No,
+            should_panic: ShouldPanic::No,
+        };
+
+        assert_eq!(test.name(), "foo");
+    }
+
+    #[test]
+    fn test_run_no_panic() {
+        let test = Test {
+            name: "",
+            test: || {
+                assert!(true);
+            },
+            ignore: Ignore::No,
+            should_panic: ShouldPanic::No,
+        };
+
+        test.run();
+    }
+
+    #[test]
+    #[should_panic(expectd = "assertion failed: false")]
+    fn test_run_panic() {
+        let test = Test {
+            name: "",
+            test: || {
+                assert!(false);
+            },
+            ignore: Ignore::No,
+            should_panic: ShouldPanic::No,
+        };
+
+        test.run();
+    }
+
+    #[test]
+    fn test_ignore() {
+        let test = Test {
+            name: "",
+            test: || {},
+            ignore: Ignore::Yes,
+            should_panic: ShouldPanic::No,
+        };
+
+        assert_matches!(test.ignore(), Ignore::Yes);
+    }
+
+    #[test]
+    fn test_should_panic() {
+        let test = Test {
+            name: "",
+            test: || {},
+            ignore: Ignore::No,
+            should_panic: ShouldPanic::Yes,
+        };
+
+        assert_matches!(test.should_panic(), ShouldPanic::Yes);
+    }
+
+    #[test]
+    fn test_message() {
+        let test = Test {
+            name: "",
+            test: || {},
+            ignore: Ignore::YesWithMessage("foo"),
+            should_panic: ShouldPanic::No,
+        };
+
+        assert_some_eq!(test.message(), "foo");
+    }
+
+    #[test]
+    fn test_no_message() {
+        let test = Test {
+            name: "",
+            test: || {},
+            ignore: Ignore::Yes,
+            should_panic: ShouldPanic::No,
+        };
+
+        assert_none!(test.message());
+    }
+}
