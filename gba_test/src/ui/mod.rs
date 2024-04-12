@@ -281,10 +281,11 @@ pub(crate) fn run(test_outcomes: TestOutcomes) -> ! {
                 }
                 if keys == 0b0000_0011_1111_1110 {
                     // A
-                    let (test_case, outcome) = page.get(*index).unwrap();
-                    entry::show(test_case, outcome);
-                    old_keys = keys;
-                    break;
+                    if let Some((test_case, outcome)) = page.get(*index) {
+                        entry::show(test_case, outcome);
+                        old_keys = keys;
+                        break;
+                    }
                 }
             }
 
