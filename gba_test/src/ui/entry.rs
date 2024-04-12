@@ -17,12 +17,7 @@ pub(super) fn show(test_case: &dyn TestCase, outcome: Outcome<&'static str>) {
     write!(cursor, "{}\n", test_case.name());
 
     // Write test result.
-    let palette = match outcome {
-        Outcome::Passed => 1,
-        Outcome::Ignored => 2,
-        Outcome::Failed(_) => 3,
-    };
-    cursor.set_palette(palette);
+    cursor.set_palette(outcome.palette());
     write!(cursor, "{}\n", outcome.as_str());
 
     // Write message.

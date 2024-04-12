@@ -9,6 +9,7 @@ macro_rules! include_aligned_bytes {
 mod cursor;
 mod entry;
 mod font;
+mod palette;
 
 use crate::{test, test::TestOutcomes, test_case::TestCase, Outcome};
 use core::{arch::asm, cmp::min, fmt::Write};
@@ -131,12 +132,6 @@ fn draw_test_outcomes<'a, TestOutcomes>(
         write!(cursor, "({:^4}) ", length);
     }
     for (test, outcome) in test_outcomes.take(18) {
-        let palette = match outcome {
-            Outcome::Passed => 1,
-            Outcome::Ignored => 2,
-            Outcome::Failed(_) => 3,
-        };
-
         cursor.set_palette(0);
         if test.name().chars().count() < 22 {
             write!(cursor, "\n{}: ", test.name());
@@ -149,7 +144,7 @@ fn draw_test_outcomes<'a, TestOutcomes>(
                 &test.name()[(test.name().len() - 10)..]
             );
         }
-        cursor.set_palette(palette);
+        cursor.set_palette(outcome.palette());
         write!(cursor, "{}", outcome.as_str());
     }
 }
