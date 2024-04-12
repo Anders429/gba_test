@@ -46,7 +46,7 @@ fn reset() -> ! {
         asm! {
             "swi #0x01",
             "swi #0x00",
-            in("r0") 0xFE,
+            in("r0") 0xFC,
             options(noreturn),
         }
     };
