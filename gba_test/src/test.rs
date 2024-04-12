@@ -75,7 +75,7 @@ impl<'a> ErrorMessage<'a> {
     ///
     /// The pointer is passed via mutable reference to allow it to be updated automatically when
     /// this `ErrorMessage` is dropped.
-    fn new(start: &'a mut *mut usize) -> Self {
+    unsafe fn new(start: &'a mut *mut usize) -> Self {
         Self {
             cursor: unsafe { start.cast::<u8>().add(4) },
             start,
@@ -235,7 +235,7 @@ impl Tests {
         match outcome {
             Outcome::Failed(data) => {
                 log::info!("data: {}", data);
-                let mut error_message = ErrorMessage::new(&mut self.data);
+                let mut error_message = unsafe { ErrorMessage::new(&mut self.data) };
                 write!(error_message, "{}", data)
                     .expect("not enough space to store error message: {data}");
             }
@@ -574,8 +574,9 @@ impl<Filter, const SIZE: usize> Clone for Window<Filter, SIZE> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Outcome, OutcomeVariant};
-    use claims::assert_matches;
+    use super::{ErrorMessage, Outcome, OutcomeVariant};
+    use claims::{assert_matches, assert_ok};
+    use core::fmt::Write;
     use gba_test_macros::test;
 
     #[test]
@@ -614,6 +615,22 @@ mod tests {
         assert_matches!(
             OutcomeVariant::from(&Outcome::<&str>::Ignored),
             OutcomeVariant::Ignored
+        );
+    }
+
+    #[test]
+    fn error_message_write_str() {
+        #[link_section = ".ewram"]
+        static mut BUFFER: [u8; 12] = [0u8; 12];
+        let mut pointer = unsafe { BUFFER.as_mut_ptr() }.cast();
+        let mut error_message = unsafe { ErrorMessage::new(&mut pointer) };
+
+        assert_ok!(error_message.write_str("foo"));
+        core::mem::drop(error_message);
+
+        assert_eq!(
+            unsafe { BUFFER },
+            [3, 0, 0, 0, b'f', b'o', b'o', 0, 3, 0, 0, 0]
         );
     }
 }
