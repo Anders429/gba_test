@@ -107,10 +107,8 @@ fn panic(info: &PanicInfo) -> ! {
     }
 
     // Panicked outside of executing a test.
-    //
-    // For now, just log the panic. In the future we will display it on screen as well.
-    log::error!("panicked at: {info}");
-    loop {}
+    log::error!("{info}");
+    ui::panic::display(info);
 }
 
 /// A test runner to execute tests as a Game Boy Advance ROM.

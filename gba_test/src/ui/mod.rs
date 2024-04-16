@@ -6,6 +6,8 @@ macro_rules! include_aligned_bytes {
     }};
 }
 
+pub(crate) mod panic;
+
 mod cursor;
 mod entry;
 mod font;
