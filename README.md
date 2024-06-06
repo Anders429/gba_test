@@ -13,6 +13,19 @@ Using `gba_test` requires a `nightly` Rust version.
 ### Prerequisites
 - *ARM Binutils*: At minimum, you'll need the ARM GNU linker (`arm-none-eabi-ld`) to properly build projects using `gba_test`. You can obtain it from the [ARM website](https://developer.arm.com/Tools%20and%20Software/GNU%20Toolchain).
 - *rust-src* - GBA development requires `build-std` to work. Run `rustup component add rust-src` to enable it.
+- *`cargo` configuration* - Configuration for `cargo` should be provided in a `cargo/config.toml` file within your project. An example configuration is as follows:
+
+```toml
+[build]
+target = "thumbv4t-none-eabi"
+
+[target.thumbv4t-none-eabi]
+runner = "mgba"
+rustflags = ["-Clinker=arm-none-eabi-ld", "-Clink-arg=-Tgba.ld", "-Ztrap-unreachable=no"]
+
+[unstable]
+build-std = ["core"]
+```
 
 ### Adding `gba_test` to your list of dependencies
 In your `Cargo.toml` manifest, add `gba_test` to your list of dev-dependencies:
@@ -76,23 +89,7 @@ Other common testing attributes are also supported, including `#[ignore]` and `#
 `gba_test` can be run on anything that runs `.gba` files, ranging from original Game Boy Advance hardware to emulators.
 
 ### Configuring to run on mGBA with `cargo test`
-For development workflows, it's recommended to run tests on an emulator. Here is an example configuration for running tests on [mGBA](https://mgba.io/).
-
-In your `cargo/config.toml` file, add the following:
-
-```rust
-[build]
-target = "thumbv4t-none-eabi"
-
-[target.thumbv4t-none-eabi]
-runner = "mgba"
-rustflags = ["-Clinker=arm-none-eabi-ld", "-Clink-arg=-Tgba.ld", "-Ztrap-unreachable=no"]
-
-[unstable]
-build-std = ["core"]
-```
-
-Now, when you run `cargo test`, mGBA will begin executing your tests and display the results (assuming `mgba` is in your PATH).
+For development workflows, it is recommended to run tests on an emulator. The example `cargo/config.toml` provided in the "Prerequisites" section will enable you to run tests on [mGBA](https://mgba.io/) (assuming `mgba` is in your PATH) when you run `cargo test`.
 
 ### Running on real hardware
 To run on real Game Boy Advance hardware, you can flash the generated test binary to a cartridge.
