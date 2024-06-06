@@ -112,6 +112,43 @@ fn panic(info: &PanicInfo) -> ! {
 }
 
 /// A test runner to execute tests as a Game Boy Advance ROM.
+///
+/// This runner can be used with the unstable
+/// [`custom_test_frameworks`](https://doc.rust-lang.org/unstable-book/language-features/custom-test-frameworks.html)
+/// feature. Simply provide the runner to the `#[test_runner]` attribute and call the test harness.
+///
+/// The test runner will never return. It first executes the tests, and then displays a user
+/// interface to browse test results.
+///
+/// # Example
+/// ```
+/// #![no_std]
+/// #![cfg_attr(test, no_main)]
+/// #![cfg_attr(test, feature(custom_test_frameworks))]
+/// #![cfg_attr(test, test_runner(gba_test::runner))]
+/// #![cfg_attr(test, reexport_test_harness_main = "test_harness")]
+///
+/// #[cfg(test)]
+/// #[no_mangle]
+/// pub fn main() {
+///     test_harness()
+/// }
+///
+/// pub fn add(left: usize, right: usize) -> usize {
+///     left + right
+/// }
+///
+/// #[cfg(test)]
+/// mod tests {
+///     use gba_test::test;
+///
+///     #[test]
+///     fn it_works() {
+///         let result = add(2, 2);
+///         assert_eq!(result, 4);
+///     }
+/// }
+/// ```
 pub fn runner(tests: &'static [&'static dyn TestCase]) -> ! {
     mgba_log::init();
 
