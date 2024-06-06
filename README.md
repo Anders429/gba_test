@@ -92,7 +92,7 @@ rustflags = ["-Clinker=arm-none-eabi-ld", "-Clink-arg=-Tgba.ld", "-Ztrap-unreach
 build-std = ["core"]
 ```
 
-Now, when you run `cargo test`, mGBA will begin executing your tests and display the results.
+Now, when you run `cargo test`, mGBA will begin executing your tests and display the results (assuming `mgba` is in your PATH).
 
 ### Running on real hardware
 To run on real Game Boy Advance hardware, you can flash the generated test binary to a cartridge.
