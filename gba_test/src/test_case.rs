@@ -9,6 +9,22 @@
 //! [`test`]: crate::test
 
 /// Defines whether a test should be ignored or not.
+///
+/// The easiest way to define if a test should be ignored is to use the `#[ignore]` attribute when
+/// defining a test.
+///
+/// ```
+/// #[cfg(test)]
+/// mod tests {
+///     use gba_test_macros::test;
+///
+///     #[test]
+///     #[ignore]
+///     fn ignored_test() {
+///         assert!(false);
+///     }
+/// }
+/// ```
 #[derive(Clone, Copy, Debug)]
 pub enum Ignore {
     /// The test should be run.
