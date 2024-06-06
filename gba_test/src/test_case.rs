@@ -19,6 +19,7 @@ pub enum Ignore {
     YesWithMessage(&'static str),
 }
 
+/// Whether a test is expected to panic.
 #[derive(Clone, Copy, Debug)]
 pub enum ShouldPanic {
     /// The test is expected to run successfully.
