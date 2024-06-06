@@ -103,5 +103,6 @@ use test::{Outcome, Tests};
 #[cfg(test)]
 #[no_mangle]
 pub fn main() {
+    mgba_log::init();
     test_harness()
 }
