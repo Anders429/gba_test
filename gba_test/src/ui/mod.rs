@@ -111,7 +111,14 @@ fn draw_test_outcomes<'a, TestOutcomes, const SIZE: usize>(
     // Highlight selected.
     for row in 0..18 {
         let mut cursor = unsafe { UI_ENTRIES.byte_add(0x40 * (row + 2)) };
-        if index == row {
+        if index == row
+            && match page {
+                Page::All(_) => lengths[0] > 0,
+                Page::Failed(_) => lengths[1] > 0,
+                Page::Passed(_) => lengths[2] > 0,
+                Page::Ignored(_) => lengths[3] > 0,
+            }
+        {
             for _ in 0..30 {
                 unsafe {
                     cursor.write_volatile(4 << 12 | 1);
