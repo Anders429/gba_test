@@ -19,7 +19,9 @@ mod ui;
 #[cfg_attr(doc_cfg, doc(cfg(feature = "macros")))]
 pub use gba_test_macros::test;
 pub use runner::runner;
-pub use test_case::{Ignore, ShouldPanic, Test, TestCase};
+#[doc(hidden)]
+pub use test_case::Test;
+pub use test_case::{Ignore, ShouldPanic, TestCase};
 
 use test::{Outcome, Tests};
 
