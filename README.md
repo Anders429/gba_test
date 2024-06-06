@@ -121,6 +121,47 @@ Now, `test.gba` is prepared to run on real Game Boy Advance hardware. See docume
 
 To use `mgba-rom-test` in continuous integration with GitHub Actions, it is recommended to use the [`github-mgba-rom-test`](https://github.com/felixjones/github-mgba-rom-test) action. See this project's GitHub Actions setup for examples of this workflow.
 
+## Logging
+Some emulators, such as [mGBA](https://mgba.io/) or [no$gba](https://problemkaputt.de/gba.htm), support logging. `gba_test` provides optional integration with the [`log`](https://crates.io/crates/log) crate to log information about test running. You can enable logging through the log feature:
+
+``` toml
+[dev-dependencies]
+gba_test = {version = "0.1.0", features = ["log"]}
+```
+
+You can also log within your tests using the `log` crate:
+
+``` rust
+use gba_test::test;
+
+#[test]
+fn foo() {
+    log::info!("important information");
+}
+```
+
+To produce the log output for your emulator, you'll need to use a logger implementation specific for that emulator's logging interface. The following logger implementations are recommended:
+
+- mGBA: [`mgba_log`](https://crates.io/crates/mgba_log)
+- no$gba: [`nocash_gba_log`](https://crates.io/crates/nocash_gba_log)
+
+Initialize the logger prior to calling the test runner, like so:
+
+``` rust
+#![no_std]
+#![cfg_attr(test, no_main)]
+#![cfg_attr(test, feature(custom_test_frameworks))]
+#![cfg_attr(test, test_runner(gba_test::runner))]
+#![cfg_attr(test, reexport_test_harness_main = "test_harness")]
+
+#[cfg(test)]
+#[no_mangle]
+pub fn main() {
+    mgba_log::init();
+    test_harness()
+}
+```
+
 ## License
 This project is licensed under either of
 
