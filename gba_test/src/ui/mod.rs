@@ -80,10 +80,11 @@ fn load_ui_tiles() {
 }
 
 // TODO: Make this a `Selection` struct. Should contain its index, the index within the shown stuff, the pointer to the top-most shown element, etc.
-fn draw_test_outcomes<'a, TestOutcomes>(
+fn draw_test_outcomes<'a, TestOutcomes, const SIZE: usize>(
     test_outcomes: TestOutcomes,
     index: usize,
     lengths: [usize; 4],
+    page: &Page<SIZE>,
 ) where
     TestOutcomes: Iterator<Item = (&'a dyn TestCase, Outcome<&'static str>)>,
 {
@@ -91,9 +92,19 @@ fn draw_test_outcomes<'a, TestOutcomes>(
     // Draw UI.
     for row in 0..2 {
         let mut cursor = unsafe { UI_ENTRIES.byte_add(0x40 * row) };
-        for _ in 0..30 {
+        for i in 0..30 {
             unsafe {
-                cursor.write_volatile(4 << 12 | 1);
+                if match page {
+                    Page::All(_) => i < 7,
+                    Page::Failed(_) => i >= 7 && i < 14,
+                    Page::Passed(_) => i >= 14 && i < 21,
+                    Page::Ignored(_) => i >= 21,
+                } {
+                    cursor.write_volatile(4 << 12 | 1);
+                } else {
+                    cursor.write_volatile(0);
+                }
+                // cursor.write_volatile(4 << 12 | 1);
                 cursor = cursor.add(1);
             }
         }
@@ -225,10 +236,16 @@ pub(crate) fn run(test_outcomes: TestOutcomes) -> ! {
     loop {
         // Draw the tests that should currently be viewable.
         match page {
-            Page::All(ref window) => draw_test_outcomes(window.iter(), all_index, lengths),
-            Page::Failed(ref window) => draw_test_outcomes(window.iter(), failed_index, lengths),
-            Page::Passed(ref window) => draw_test_outcomes(window.iter(), passed_index, lengths),
-            Page::Ignored(ref window) => draw_test_outcomes(window.iter(), ignored_index, lengths),
+            Page::All(ref window) => draw_test_outcomes(window.iter(), all_index, lengths, &page),
+            Page::Failed(ref window) => {
+                draw_test_outcomes(window.iter(), failed_index, lengths, &page)
+            }
+            Page::Passed(ref window) => {
+                draw_test_outcomes(window.iter(), passed_index, lengths, &page)
+            }
+            Page::Ignored(ref window) => {
+                draw_test_outcomes(window.iter(), ignored_index, lengths, &page)
+            }
         }
         // Wait until input is received from the user.
         loop {
