@@ -1,6 +1,6 @@
 [package]
 name = "gba_test"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Anders Evensen"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
@@ -15,6 +15,7 @@ keywords = ["gba", "test", "testing", "framework", "development"]
 # RUSTDOCFLAGS="--cfg doc_cfg" cargo +nightly doc --all-features --no-deps --open
 all-features = true
 rustdoc-args = ["--cfg", "doc_cfg"]
+targets = ["armv5te-unknown-linux-gnueabi"]
 
 [profile.dev]
 opt-level = 3

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2 - 2024-06-06
+### Fixed
+- Provide correct target for docs.rs build.
+
 ## 0.1.1 - 2024-06-06
 ### Fixed
 - Enabled `doc_cfg` feature to fix documentation build.
