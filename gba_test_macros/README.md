@@ -1,4 +1,10 @@
 # gba_test_macros
+
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/Anders429/brood/gba_test_macros.yml?branch=master)](https://github.com/Anders429/gba_test/actions/workflows/gba_test_macros.yml?query=branch%3Amaster)
+[![crates.io](https://img.shields.io/crates/v/gba_test_macros)](https://crates.io/crates/gba_test_macros)
+[![docs.rs](https://docs.rs/gba_test_macros/badge.svg)](https://docs.rs/gba_test_macros)
+[![License](https://img.shields.io/crates/l/gba_test_macros)](#license)
+
 Provides the `#[test]` attribute for annotating tests that should be run on the Game Boy Advance.
 
 ## Installation
@@ -10,6 +16,8 @@ simply use `gba_test` with the `macros` feature enabled by specifying the follow
 [dependencies]
 gba_test = {version = "0.1.0", features = ["macros"]}
 ```
+
+`gba_test`'s `macros` feature is enabled by default.
 
 ## Usage
 You can use the provided `#[test]` attribute to write tests in the same way you would normally
@@ -37,3 +45,18 @@ Also note that use of this macro currently depends on the
 [`custom_test_frameworks`](https://doc.rust-lang.org/beta/unstable-book/language-features/custom-test-frameworks.html)
 unstable Rust feature. As such, you will need to enable it in any crate that writes tests using
 this crate.
+
+## License
+This project is licensed under either of
+
+* Apache License, Version 2.0
+([LICENSE-APACHE](https://github.com/Anders429/gba_test/blob/HEAD/LICENSE-APACHE) or
+http://www.apache.org/licenses/LICENSE-2.0)
+* MIT license
+([LICENSE-MIT](https://github.com/Anders429/gba_test/blob/HEAD/LICENSE-MIT) or
+http://opensource.org/licenses/MIT)
+
+at your option.
+
+### Contribution
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
