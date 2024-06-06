@@ -11,7 +11,7 @@
 /// Defines whether a test should be ignored or not.
 ///
 /// The easiest way to define if a test should be ignored is to use the `#[ignore]` attribute when
-/// defining a test.
+/// defining the test.
 ///
 /// ```
 /// #[cfg(test)]
@@ -36,6 +36,22 @@ pub enum Ignore {
 }
 
 /// Whether a test is expected to panic.
+///
+/// The easiest way to define a test that should panic is to use the `#[should_panic]` attribute
+/// when defining the test.
+///
+/// ```
+/// #[cfg(test)]
+/// mod tests {
+///     use gba_test_macros::test;
+///
+///     #[test]
+///     #[should_panic]
+///     fn ignored_test() {
+///         panic!("something was expected to go wrong");
+///     }
+/// }
+/// ```
 #[derive(Clone, Copy, Debug)]
 pub enum ShouldPanic {
     /// The test is expected to run successfully.
