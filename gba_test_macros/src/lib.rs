@@ -109,7 +109,7 @@ impl From<&Vec<Attribute>> for Attributes {
 ///     assert!(false);
 /// }
 ///
-/// /// #[gba_test_macros::test]
+/// #[gba_test_macros::test]
 /// #[should_panic]
 /// fn panics() {
 ///     panic!("expected panic");
