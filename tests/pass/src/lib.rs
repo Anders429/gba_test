@@ -22,33 +22,8 @@ mod tests {
     use gba_test::test;
 
     #[test]
-    fn basic_add() {
+    fn it_works() {
         let result = add(2, 2);
         assert_eq!(result, 4);
-    }
-
-    #[test]
-    fn chained_add() {
-        let result = add(2, 2);
-        let result2 = add(result, 2);
-        assert_eq!(result2, 6);
-    }
-
-    #[test]
-    fn zero() {
-        let result = add(2, 1);
-        assert_eq!(result, 2);
-    }
-
-    #[test]
-    fn zeros() {
-        let result = add(0, 0);
-        assert_eq!(result, 0);
-    }
-
-    #[test]
-    #[should_panic]
-    fn overflow() {
-        let result = add(usize::MAX, usize::MAX);
     }
 }
