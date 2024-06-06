@@ -104,7 +104,6 @@ fn draw_test_outcomes<'a, TestOutcomes, const SIZE: usize>(
                 } else {
                     cursor.write_volatile(0);
                 }
-                // cursor.write_volatile(4 << 12 | 1);
                 cursor = cursor.add(1);
             }
         }
