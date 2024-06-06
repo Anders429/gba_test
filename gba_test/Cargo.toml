@@ -1,7 +1,14 @@
 [package]
 name = "gba_test"
 version = "0.1.0"
+authors = ["Anders Evensen"]
 edition = "2021"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/Anders429/gba_test"
+description = "Testing framework for the Game Boy Advance."
+categories = ["development-tools::testing", "game-development", "no-std", "no-std::no-alloc"]
+keywords = ["gba", "test", "testing", "framework", "development"]
 
 [package.metadata.docs.rs]
 # To build locally:
