@@ -150,8 +150,6 @@ fn panic(info: &PanicInfo) -> ! {
 /// }
 /// ```
 pub fn runner(tests: &'static [&'static dyn TestCase]) -> ! {
-    mgba_log::init();
-
     if unsafe { !INITIALIZED } {
         // Use the remaining unused space in ewram as our data heap.
         extern "C" {

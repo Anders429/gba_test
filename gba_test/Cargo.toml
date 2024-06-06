@@ -19,7 +19,6 @@ lto = true
 [dependencies]
 gba_test_macros = {version = "0.1.0", path = "../gba_test_macros/", optional = true}
 log = "0.4.20"
-mgba_log = "0.2.1"
 
 [dev-dependencies]
 claims = "0.7.1"
