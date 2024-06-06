@@ -7,6 +7,8 @@
 
 Testing framework for the Game Boy Advance.
 
+![Example .gif](media/gba_test.gif)
+
 ## Getting Started
 Using `gba_test` requires a `nightly` Rust version.
 

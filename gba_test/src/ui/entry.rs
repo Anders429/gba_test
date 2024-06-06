@@ -1,13 +1,14 @@
-use super::{cursor::Cursor, wait_for_vblank, KEYINPUT, TEXT_ENTRIES};
+use super::{cursor::Cursor, wait_for_vblank, KEYINPUT, TEXT_ENTRIES, UI_ENTRIES};
 use crate::{test_case::TestCase, Outcome};
 use core::fmt::Write;
 
 pub(super) fn show(test_case: &dyn TestCase, outcome: Outcome<&'static str>) {
-    // Clear previous text.
+    // Clear previous text and highlights.
     for y in 0..20 {
         for x in 0..30 {
             unsafe {
                 TEXT_ENTRIES.add(0x20 * y + x).write_volatile(0);
+                UI_ENTRIES.add(0x20 * y + x).write_volatile(0);
             }
         }
     }
