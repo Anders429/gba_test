@@ -1,5 +1,4 @@
 /// Works like [`include_bytes!`], but the value is wrapped in [`Align4`].
-#[macro_export]
 macro_rules! include_aligned_bytes {
     ($file:expr $(,)?) => {{
         crate::ui::Align4(*include_bytes!($file))
