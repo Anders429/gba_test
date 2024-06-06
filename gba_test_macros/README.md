@@ -1,6 +1,6 @@
 # gba_test_macros
 
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/Anders429/brood/gba_test_macros.yml?branch=master)](https://github.com/Anders429/gba_test/actions/workflows/gba_test_macros.yml?query=branch%3Amaster)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/Anders429/gba_test/gba_test_macros.yml?branch=master)](https://github.com/Anders429/gba_test/actions/workflows/gba_test_macros.yml?query=branch%3Amaster)
 [![crates.io](https://img.shields.io/crates/v/gba_test_macros)](https://crates.io/crates/gba_test_macros)
 [![docs.rs](https://docs.rs/gba_test_macros/badge.svg)](https://docs.rs/gba_test_macros)
 [![License](https://img.shields.io/crates/l/gba_test_macros)](#license)
