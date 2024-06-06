@@ -100,6 +100,7 @@ impl From<&Vec<Attribute>> for Attributes {
 /// tests in Rust. Specifically, the `#[ignore]` and `#[should_panic]` attributes are supported.
 ///
 /// # Example
+/// ```
 /// # #![feature(custom_test_frameworks)]
 /// #
 /// #[gba_test_macros::test]
