@@ -95,6 +95,25 @@ impl From<&Vec<Attribute>> for Attributes {
 ///     assert!(true);
 /// }
 /// ```
+///
+/// The test macro supports the other testing attributes you would expect to use when writing unit
+/// tests in Rust. Specifically, the `#[ignore]` and `#[should_panic]` attributes are supported.
+///
+/// # Example
+/// # #![feature(custom_test_frameworks)]
+/// #
+/// #[gba_test_macros::test]
+/// #[ignore]
+/// fn ignored() {
+///     assert!(false);
+/// }
+///
+/// /// #[gba_test_macros::test]
+/// #[should_panic]
+/// fn panics() {
+///     panic!("expected panic");
+/// }
+/// ```
 #[proc_macro_attribute]
 pub fn test(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let function: ItemFn = match parse(item) {
