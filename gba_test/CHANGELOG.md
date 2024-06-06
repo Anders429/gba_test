@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1 - 2024-06-06
+### Fixed
+- Enabled `doc_cfg` feature to fix documentation build.
+
 ## 0.1.0 - 2024-06-06
 ### Added
 - `#[test]` attribute for writing tests.
