@@ -78,6 +78,7 @@
 #![cfg_attr(test, feature(custom_test_frameworks))]
 #![cfg_attr(test, test_runner(runner))]
 #![cfg_attr(test, reexport_test_harness_main = "test_harness")]
+#![cfg_attr(doc_cfg, feature(doc_cfg))]
 
 #[cfg(test)]
 extern crate self as gba_test;
