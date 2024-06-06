@@ -38,8 +38,8 @@ unsafe extern "C" fn __start() -> ! {
 
         /* iwram copy */
         "ldr r4, =__iwram_word_copy_count",
-        // "cmp r4, #0",
-        // "bne 1 f",
+        "cmp r4, #0",
+        "beq 2 f",
         "add r3, r12, #{dma3_offset}",
         "mov r5, #{dma3_setting}",
         "ldr r0, =__iwram_start",
@@ -48,12 +48,12 @@ unsafe extern "C" fn __start() -> ! {
         "str r0, [r3, #4]", /* destination */
         "strh r4, [r3, #8]", /* word count */
         "strh r5, [r3, #10]", /* set control bits */
-        "1:",
+        "2:",
 
         /* ewram copy */
         "ldr r4, =__ewram_word_copy_count",
-        // "cmp r4, #0",
-        // "bne 1 f",
+        "cmp r4, #0",
+        "beq 3 f",
         "add r3, r12, #{dma3_offset}",
         "mov r5, #{dma3_setting}",
         "ldr r0, =__ewram_start",
@@ -62,19 +62,19 @@ unsafe extern "C" fn __start() -> ! {
         "str r0, [r3, #4]", /* destination */
         "strh r4, [r3, #8]", /* word count */
         "strh r5, [r3, #10]", /* set control bits */
-        "1:",
+        "3:",
 
         /* bss zero */
         "ldr r4, =__bss_word_clear_count",
-        // "cmp r4, #0",
-        // "bne 1 f",
+        "cmp r4, #0",
+        "beq 4 f",
         "ldr r0, =__bss_start",
         "mov r2, #0",
         "2:",
         "str r2, [r0], #4",
         "subs r4, r4, #1",
         "bne 2b",
-        "1:",
+        "4:",
 
         /* assign the runtime irq handler */
         "ldr r1, ={runtime_irq_handler}",

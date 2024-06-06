@@ -4,7 +4,7 @@
 //! code here should only ever be run on a Game Boy Advance, and the safety considerations do not
 //! apply for other targets.
 
-use crate::{test_case::Ignore, ui, Outcome, ShouldPanic, TestCase, Tests};
+use crate::{log, test_case::Ignore, ui, Outcome, ShouldPanic, TestCase, Tests};
 use core::{arch::asm, fmt::Display, mem::MaybeUninit, panic::PanicInfo, ptr::addr_of};
 
 // TODO: Make these more type-safe.

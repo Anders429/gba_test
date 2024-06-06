@@ -234,7 +234,6 @@ impl Tests {
         }
         match outcome {
             Outcome::Failed(data) => {
-                log::info!("data: {}", data);
                 let mut error_message = unsafe { ErrorMessage::new(&mut self.data) };
                 write!(error_message, "{}", data)
                     .expect("not enough space to store error message: {data}");
