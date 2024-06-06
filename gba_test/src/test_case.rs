@@ -65,7 +65,7 @@ pub enum ShouldPanic {
 /// Any type implementing this trait can be passed to the test runner using the `#[test_case]`
 /// attribute. For most cases, using the `#[test]` attribute provided by this crate is sufficient.
 ///
-/// See the[`custom_test_frameworks`](https://doc.rust-lang.org/unstable-book/language-features/custom-test-frameworks.html)
+/// See the [`custom_test_frameworks`](https://doc.rust-lang.org/unstable-book/language-features/custom-test-frameworks.html)
 /// language feature for more information about using the `#[test_case]` attribute.
 pub trait TestCase {
     /// The name of the test.
