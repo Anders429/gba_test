@@ -95,8 +95,8 @@ fn draw_test_outcomes<'a, TestOutcomes, const SIZE: usize>(
             unsafe {
                 if match page {
                     Page::All(_) => i < 7,
-                    Page::Failed(_) => i >= 7 && i < 14,
-                    Page::Passed(_) => i >= 14 && i < 21,
+                    Page::Failed(_) => (7..14).contains(&i),
+                    Page::Passed(_) => (14..21).contains(&i),
                     Page::Ignored(_) => i >= 21,
                 } {
                     cursor.write_volatile(4 << 12 | 1);
