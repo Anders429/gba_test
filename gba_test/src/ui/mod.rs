@@ -275,7 +275,7 @@ pub(crate) fn run(test_outcomes: TestOutcomes) -> ! {
                 }
                 if keys == 0b0000_0011_0111_1111 {
                     // Down
-                    if *index == min(17, length - 1) {
+                    if *index == min(17, length.saturating_sub(1)) {
                         page.next();
                     } else {
                         *index += 1;
