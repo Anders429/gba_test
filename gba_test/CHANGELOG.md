@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+### Fixed
+- Panic displaying now properly clears all previous text before displaying the panic info.
+
 ## 0.1.2 - 2024-06-06
 ### Fixed
 - Provide correct target for docs.rs build.
