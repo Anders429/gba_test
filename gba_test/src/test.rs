@@ -232,13 +232,10 @@ impl Tests {
             self.outcomes.write((&outcome).into());
             self.outcomes = self.outcomes.add(1);
         }
-        match outcome {
-            Outcome::Failed(data) => {
-                let mut error_message = unsafe { ErrorMessage::new(&mut self.data) };
-                write!(error_message, "{}", data)
-                    .expect("not enough space to store error message: {data}");
-            }
-            _ => {}
+        if let Outcome::Failed(data) = outcome {
+            let mut error_message = unsafe { ErrorMessage::new(&mut self.data) };
+            write!(error_message, "{}", data)
+                .expect("not enough space to store error message: {data}");
         }
 
         self.index += 1;
@@ -407,11 +404,8 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
             }
         };
         // Check if the dropped outcome in the window requires moving the error message pointer.
-        match unsafe { self.outcome.sub(1).read() } {
-            OutcomeVariant::Failed => {
-                Self::next_error_message(&mut self.error_message_front);
-            }
-            _ => {}
+        if let OutcomeVariant::Failed = unsafe { self.outcome.sub(1).read() } {
+            Self::next_error_message(&mut self.error_message_front);
         }
 
         self.index += 1;
@@ -436,11 +430,8 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
             }
         };
         // Check if the dropped outcome in the window requires moving the error message pointer.
-        match unsafe { self.outcome.add(SIZE).read() } {
-            OutcomeVariant::Failed => {
-                Self::prev_error_message(&mut self.error_message_back);
-            }
-            _ => {}
+        if let OutcomeVariant::Failed = unsafe { self.outcome.add(SIZE).read() } {
+            Self::prev_error_message(&mut self.error_message_back);
         }
 
         self.index -= 1;
