@@ -50,5 +50,6 @@ pub(crate) fn display(info: &PanicInfo) -> ! {
         info
     );
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }
