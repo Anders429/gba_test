@@ -539,7 +539,7 @@ where
     }
 
     pub(crate) fn get(&self, index: usize) -> Option<(&dyn TestCase, Outcome<&'static str>)> {
-        self.iter().skip(index).next()
+        self.iter().nth(index)
     }
 }
 
