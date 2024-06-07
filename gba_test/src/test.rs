@@ -535,7 +535,7 @@ where
             outcomes: self.outcome as *mut OutcomeVariant,
             data: self.error_message_front as *mut usize,
         }
-        .filter(|(_, outcome)| Filter::filter(&outcome))
+        .filter(|(_, outcome)| Filter::filter(outcome))
     }
 
     pub(crate) fn get(&self, index: usize) -> Option<(&dyn TestCase, Outcome<&'static str>)> {
