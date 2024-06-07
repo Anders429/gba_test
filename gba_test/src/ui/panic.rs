@@ -3,6 +3,7 @@
 use super::{
     font, load_ui_tiles, wait_for_vblank, Cursor, BG0CNT, BG1CNT, DISPCNT, TEXT_ENTRIES, UI_ENTRIES,
 };
+use crate::runner::report_result;
 use core::{fmt::Write, panic::PanicInfo};
 
 const DISPSTAT: *mut u16 = 0x0400_0004 as *mut u16;
@@ -50,6 +51,19 @@ pub(crate) fn display(info: &PanicInfo) -> ! {
         info
     );
 
+    // Disable interrupts.
+    unsafe {
+        DISPSTAT.write_volatile(0);
+        IE.write_volatile(0);
+        IME.write(false);
+    }
+
+    // Report panic and halt.
+    report_result(2);
+
+    // This empty loop is just a catch-all in case the halt from the above report is somehow broken
+    // from. Normally, the halt will pause the CPU indefinitely, as interrupts are enabled and
+    // therefore cannot break the system from the halt state.
     #[allow(clippy::empty_loop)]
     loop {}
 }
