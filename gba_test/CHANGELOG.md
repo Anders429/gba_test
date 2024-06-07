@@ -4,6 +4,7 @@
 ### Fixed
 - Panic displaying now properly clears all previous text before displaying the panic info.
 - User interface no longer panics when attempting to scroll down an empty list.
+- Panics are now properly reported to `mgba-rom-test` using the same bios call as pass/fail reports.
 
 ## 0.1.2 - 2024-06-06
 ### Fixed
