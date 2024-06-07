@@ -105,6 +105,8 @@ use test::{Outcome, Tests};
 #[cfg(test)]
 #[no_mangle]
 pub fn main() {
-    mgba_log::init();
+    // We don't care if logging doesn't initialize, we just want to initialize it if we happen to
+    // be running on mGBA.
+    let _ = mgba_log::init();
     test_harness()
 }
