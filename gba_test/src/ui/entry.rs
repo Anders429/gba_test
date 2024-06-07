@@ -15,27 +15,28 @@ pub(super) fn show(test_case: &dyn TestCase, outcome: Outcome<&'static str>) {
 
     let mut cursor = unsafe { Cursor::new(TEXT_ENTRIES) };
     // Write test name.
-    write!(cursor, "{}\n", test_case.name());
+    write!(cursor, "{}\n", test_case.name()).expect("failed to write test name");
 
     // Write test result.
     cursor.set_palette(outcome.palette());
-    write!(cursor, "{}\n", outcome.as_str());
+    write!(cursor, "{}\n", outcome.as_str()).expect("failed to write test outcome");
 
     // Write message.
     cursor.set_palette(0);
     match outcome {
         Outcome::Passed => {
-            write!(cursor, "The test passed!");
+            write!(cursor, "The test passed!").expect("failed to write passed message");
         }
         Outcome::Ignored => {
             if let Some(message) = test_case.message() {
-                write!(cursor, "The test was ignored:\n{}", message);
+                write!(cursor, "The test was ignored:\n{}", message)
+                    .expect("failed to write ignored message");
             } else {
-                write!(cursor, "The test was ignored.");
+                write!(cursor, "The test was ignored.").expect("failed to write ignored message");
             }
         }
         Outcome::Failed(message) => {
-            write!(cursor, "{}", message);
+            write!(cursor, "{}", message).expect("failed to write failure message");
         }
     }
 

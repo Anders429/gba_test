@@ -145,14 +145,14 @@ fn draw_test_outcomes<'a, TestOutcomes, const SIZE: usize>(
 
     // Write outcome text.
     let mut cursor = unsafe { Cursor::new(TEXT_ENTRIES) };
-    write!(cursor, "  All  Failed Passed Ignored\n");
+    write!(cursor, "  All  Failed Passed Ignored\n").expect("failed to write page names");
     for length in lengths {
-        write!(cursor, "({:^4}) ", length);
+        write!(cursor, "({:^4}) ", length).expect("failed to write test counts");
     }
     for (test, outcome) in test_outcomes.take(18) {
         cursor.set_palette(0);
         if test.name().chars().count() < 22 {
-            write!(cursor, "\n{}: ", test.name());
+            write!(cursor, "\n{}: ", test.name()).expect("failed to write full test name");
         } else {
             // TODO: Make this indexing more robust. It needs to account for unicode, not just ascii.
             write!(
@@ -160,10 +160,11 @@ fn draw_test_outcomes<'a, TestOutcomes, const SIZE: usize>(
                 "\n{}..{}: ",
                 &test.name()[..9],
                 &test.name()[(test.name().len() - 10)..]
-            );
+            )
+            .expect("failed to write partial test name");
         }
         cursor.set_palette(outcome.palette());
-        write!(cursor, "{}", outcome.as_str());
+        write!(cursor, "{}", outcome.as_str()).expect("failed to write test outcome");
     }
 }
 
