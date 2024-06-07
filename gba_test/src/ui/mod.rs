@@ -145,7 +145,7 @@ fn draw_test_outcomes<'a, TestOutcomes, const SIZE: usize>(
 
     // Write outcome text.
     let mut cursor = unsafe { Cursor::new(TEXT_ENTRIES) };
-    write!(cursor, "  All  Failed Passed Ignored\n").expect("failed to write page names");
+    writeln!(cursor, "  All  Failed Passed Ignored").expect("failed to write page names");
     for length in lengths {
         write!(cursor, "({:^4}) ", length).expect("failed to write test counts");
     }
