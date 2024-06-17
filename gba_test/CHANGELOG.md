@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.3 - 2024-06-17
 ### Fixed
 - Panic displaying now properly clears all previous text before displaying the panic info.
 - User interface no longer panics when attempting to scroll down an empty list.
