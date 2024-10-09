@@ -64,12 +64,10 @@
 //! will not cause any problems for downstream users.
 //!
 //! # Stability
-//! This library relies the following unstable language features:
+//! This library relies the following unstable language feature:
 //! - [`custom_test_frameworks`](https://doc.rust-lang.org/unstable-book/language-features/custom-test-frameworks.html)
-//! - [`asm_const`](https://doc.rust-lang.org/unstable-book/language-features/asm-const.html)
-//! - [`naked_functions`](https://doc.rust-lang.org/unstable-book/language-features/naked-functions.html)
 //!
-//! As such, the stability cannot be guaranteed. These features are subject to change at any time,
+//! As such, the stability cannot be guaranteed. This feature is subject to change at any time,
 //! potentially breaking this framework.
 
 #![no_std]
