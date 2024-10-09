@@ -76,7 +76,7 @@
 #![cfg_attr(test, test_runner(runner))]
 #![cfg_attr(test, reexport_test_harness_main = "test_harness")]
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
-#![allow(clippy::needless_doctest_main)]
+#![allow(clippy::needless_doctest_main, static_mut_refs)]
 
 #[cfg(test)]
 extern crate self as gba_test;
