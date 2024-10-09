@@ -73,7 +73,6 @@
 //! potentially breaking this framework.
 
 #![no_std]
-#![feature(naked_functions)]
 #![cfg_attr(test, no_main)]
 #![cfg_attr(test, feature(custom_test_frameworks))]
 #![cfg_attr(test, test_runner(runner))]
