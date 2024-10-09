@@ -64,22 +64,19 @@
 //! will not cause any problems for downstream users.
 //!
 //! # Stability
-//! This library relies the following unstable language features:
+//! This library relies the following unstable language feature:
 //! - [`custom_test_frameworks`](https://doc.rust-lang.org/unstable-book/language-features/custom-test-frameworks.html)
-//! - [`asm_const`](https://doc.rust-lang.org/unstable-book/language-features/asm-const.html)
-//! - [`naked_functions`](https://doc.rust-lang.org/unstable-book/language-features/naked-functions.html)
 //!
-//! As such, the stability cannot be guaranteed. These features are subject to change at any time,
+//! As such, the stability cannot be guaranteed. This feature is subject to change at any time,
 //! potentially breaking this framework.
 
 #![no_std]
-#![feature(naked_functions)]
 #![cfg_attr(test, no_main)]
 #![cfg_attr(test, feature(custom_test_frameworks))]
 #![cfg_attr(test, test_runner(runner))]
 #![cfg_attr(test, reexport_test_harness_main = "test_harness")]
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
-#![allow(clippy::needless_doctest_main)]
+#![allow(clippy::needless_doctest_main, static_mut_refs)]
 
 #[cfg(test)]
 extern crate self as gba_test;
