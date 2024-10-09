@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.4 - 2024-10-09
 ### Fixed
 - Resolved issue with unstable `naked_functions` feature which caused compilation failures on the latest nightly builds.
 ### Removed
