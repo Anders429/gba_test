@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+### Fixed
+- Resolved issue with unstable `naked_functions` feature which caused compilation failures on the latest nightly builds.
+### Removed
+- Reliance on `asm_const` unstable feature (the feature was recently stabilized).
+- Reliance on `naked_functions` unstable feature, instead implementing the runtime using `global_asm!`.
+
 ## 0.1.3 - 2024-06-17
 ### Fixed
 - Panic displaying now properly clears all previous text before displaying the panic info.
