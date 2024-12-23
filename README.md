@@ -39,7 +39,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dev-dependencies]
-gba_test = "0.1.0"
+gba_test = "0.1.4"
 ```
 
 ### Running the test runner
@@ -128,7 +128,7 @@ Some emulators, such as [mGBA](https://mgba.io/) or [no$gba](https://problemkapu
 
 ``` toml
 [dev-dependencies]
-gba_test = {version = "0.1.0", features = ["log"]}
+gba_test = {version = "0.1.4", features = ["log"]}
 ```
 
 You can also log within your tests using the `log` crate:
