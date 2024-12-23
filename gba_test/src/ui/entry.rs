@@ -15,7 +15,8 @@ pub(super) fn show(test_case: &dyn TestCase, outcome: Outcome<&'static str>) {
 
     let mut cursor = unsafe { Cursor::new(TEXT_ENTRIES) };
     // Write test name.
-    writeln!(cursor, "{}", test_case.name()).expect("failed to write test name");
+    writeln!(cursor, "{}::{}", test_case.module(), test_case.name())
+        .expect("failed to write test name");
 
     // Write test result.
     cursor.set_palette(outcome.palette());
