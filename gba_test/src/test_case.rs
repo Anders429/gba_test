@@ -71,6 +71,9 @@ pub trait TestCase {
     /// The name of the test.
     fn name(&self) -> &str;
 
+    /// The module the test is in.
+    fn module(&self) -> &str;
+
     /// The actual test itself.
     ///
     /// If this method panics, the test is considered a failure. Otherwise, the test is considered
@@ -100,6 +103,8 @@ pub trait TestCase {
 pub struct Test {
     /// The name of the test.
     pub name: &'static str,
+    /// The module the test is in.
+    pub module: &'static str,
     /// The test function itself.
     pub test: fn(),
     /// Whether the test should be excluded.
@@ -114,10 +119,14 @@ pub struct Test {
 
 impl TestCase for Test {
     fn name(&self) -> &str {
-        if let Some((_, path)) = self.name.split_once("::") {
+        self.name
+    }
+
+    fn module(&self) -> &str {
+        if let Some((_, path)) = self.module.split_once("::") {
             path
         } else {
-            self.name
+            self.module
         }
     }
 
@@ -149,33 +158,49 @@ mod tests {
     use gba_test_macros::test;
 
     #[test]
-    fn test_name_split() {
+    fn test_name() {
         let test = Test {
-            name: "foo::bar",
+            name: "foo",
+            module: "",
             test: || {},
             ignore: Ignore::No,
             should_panic: ShouldPanic::No,
         };
 
-        assert_eq!(test.name(), "bar");
+        assert_eq!(test.name(), "foo")
     }
 
     #[test]
-    fn test_name_no_split() {
+    fn test_module_split() {
         let test = Test {
-            name: "foo",
+            name: "",
+            module: "foo::bar",
             test: || {},
             ignore: Ignore::No,
             should_panic: ShouldPanic::No,
         };
 
-        assert_eq!(test.name(), "foo");
+        assert_eq!(test.module(), "bar");
+    }
+
+    #[test]
+    fn test_module_no_split() {
+        let test = Test {
+            name: "",
+            module: "foo",
+            test: || {},
+            ignore: Ignore::No,
+            should_panic: ShouldPanic::No,
+        };
+
+        assert_eq!(test.module(), "foo");
     }
 
     #[test]
     fn test_run_no_panic() {
         let test = Test {
             name: "",
+            module: "",
             test: || {
                 assert!(true);
             },
@@ -191,6 +216,7 @@ mod tests {
     fn test_run_panic() {
         let test = Test {
             name: "",
+            module: "",
             test: || {
                 assert!(false);
             },
@@ -205,6 +231,7 @@ mod tests {
     fn test_ignore() {
         let test = Test {
             name: "",
+            module: "",
             test: || {},
             ignore: Ignore::Yes,
             should_panic: ShouldPanic::No,
@@ -217,6 +244,7 @@ mod tests {
     fn test_should_panic() {
         let test = Test {
             name: "",
+            module: "",
             test: || {},
             ignore: Ignore::No,
             should_panic: ShouldPanic::Yes,
@@ -229,6 +257,7 @@ mod tests {
     fn test_message() {
         let test = Test {
             name: "",
+            module: "",
             test: || {},
             ignore: Ignore::YesWithMessage("foo"),
             should_panic: ShouldPanic::No,
@@ -241,6 +270,7 @@ mod tests {
     fn test_no_message() {
         let test = Test {
             name: "",
+            module: "",
             test: || {},
             ignore: Ignore::Yes,
             should_panic: ShouldPanic::No,

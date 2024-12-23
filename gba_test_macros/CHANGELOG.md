@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+### Fixed
+- Errors now highlight test name instead of test macro.
+
 ## 0.1.1 - 2024-06-06
 ### Fixed
 - Corrected workflow badge path.

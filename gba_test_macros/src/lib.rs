@@ -128,18 +128,16 @@ pub fn test(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let should_panic = attributes.should_panic;
 
     TokenStream::from(quote! {
-        mod #name {
-            use super::*;
+        #function
 
-            #function
-
-            #[test_case]
-            const TEST: ::gba_test::Test = ::gba_test::Test {
-                name: module_path!(),
-                test: #name,
-                ignore: ::gba_test::Ignore::#ignore #ignore_message,
-                should_panic: ::gba_test::ShouldPanic::#should_panic,
-            };
-        }
+        #[test_case]
+        #[allow(non_upper_case_globals)]
+        const #name: ::gba_test::Test = ::gba_test::Test {
+            name: stringify!(#name),
+            module: module_path!(),
+            test: #name,
+            ignore: ::gba_test::Ignore::#ignore #ignore_message,
+            should_panic: ::gba_test::ShouldPanic::#should_panic,
+        };
     })
 }
