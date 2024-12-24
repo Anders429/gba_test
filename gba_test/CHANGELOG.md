@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 - 2024-12-24
 ### Added
 - A dynamic memory allocator, allowing use of `alloc` in tests.
 ### Changed

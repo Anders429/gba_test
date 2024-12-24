@@ -14,7 +14,7 @@ simply use `gba_test` with the `macros` feature enabled by specifying the follow
 
 ```
 [dependencies]
-gba_test = {version = "0.1.0", features = ["macros"]}
+gba_test = {version = "0.2.0", features = ["macros"]}
 ```
 
 `gba_test`'s `macros` feature is enabled by default.

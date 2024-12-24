@@ -39,7 +39,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dev-dependencies]
-gba_test = "0.1.4"
+gba_test = "0.2.0"
 ```
 
 ### Running the test runner
