@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+### Added
+- A dynamic memory allocator, allowing use of `alloc` in tests.
 ### Changed
 - Added `module()` to `TestCase`. `name()` should now only return the test name, not the module.
 

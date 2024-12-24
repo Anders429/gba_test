@@ -82,6 +82,7 @@
 extern crate self as gba_test;
 
 mod alignment;
+mod allocator;
 mod log;
 mod runner;
 mod runtime;

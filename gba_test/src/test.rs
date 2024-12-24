@@ -174,6 +174,10 @@ impl Tests {
         }
     }
 
+    pub(crate) fn data_cursor(&self) -> *const usize {
+        self.data
+    }
+
     /// Registers the next test to be run (if one exists) as the current test and returns a static
     /// reference to that test.
     ///

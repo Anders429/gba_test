@@ -150,3 +150,23 @@ jobs:
         read-register: 'r0'
         rom-path: should_panic_fail.gba
         success-code: 1  # Fail
+
+  allocate:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@nightly
+      with:
+        components: rust-src
+    - run: sudo apt-get install binutils-arm-none-eabi
+    - run: cd tests/allocate && cargo test --no-run --message-format=json | tee results.json
+    - run: echo "ROM_PATH=$(cd tests/parse_executable && cargo run ../allocate/results.json)" >> $GITHUB_ENV
+    - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} allocate.gba
+    - run: cargo install gbafix
+    - run: gbafix allocate.gba
+    - uses: felixjones/github-mgba-rom-test@v1
+      with:
+        swi-call: 0x27
+        read-register: 'r0'
+        rom-path: allocate.gba
+        success-code: 0  # Pass

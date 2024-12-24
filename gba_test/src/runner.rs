@@ -4,7 +4,10 @@
 //! code here should only ever be run on a Game Boy Advance, and the safety considerations do not
 //! apply for other targets.
 
-use crate::{log, test_case::Ignore, ui, Outcome, ShouldPanic, TestCase, Tests};
+use crate::{
+    allocator, allocator::Allocator, log, test_case::Ignore, ui, Outcome, ShouldPanic, TestCase,
+    Tests,
+};
 use core::{arch::asm, fmt::Display, mem::MaybeUninit, panic::PanicInfo, ptr::addr_of};
 
 // TODO: Make these more type-safe.
@@ -16,6 +19,8 @@ const IE: *mut u16 = 0x0400_0200 as *mut u16;
 static mut INITIALIZED: bool = false;
 #[link_section = ".noinit"]
 static mut TESTS: MaybeUninit<Tests> = MaybeUninit::uninit();
+#[global_allocator]
+static ALLOCATOR: Allocator = Allocator;
 
 /// Stores the outcome of the current test.
 ///
@@ -162,6 +167,10 @@ pub fn runner(tests: &'static [&'static dyn TestCase]) -> ! {
             ));
             INITIALIZED = true;
         }
+    }
+
+    unsafe {
+        allocator::init(TESTS.assume_init_ref().data_cursor().cast::<u8>());
     }
 
     if let Some(test) = unsafe { TESTS.assume_init_mut().start_test() } {
