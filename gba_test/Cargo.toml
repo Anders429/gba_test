@@ -29,7 +29,7 @@ gba_test_macros = {version = "0.1.0", path = "../gba_test_macros/", optional = t
 log = {version = "0.4.20", optional = true}
 
 [dev-dependencies]
-claims = "0.7.1"
+claims = "0.8.0"
 mgba_log = "0.2.1"
 
 [features]
