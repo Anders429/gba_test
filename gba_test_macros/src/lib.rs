@@ -128,6 +128,7 @@ pub fn test(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let should_panic = attributes.should_panic;
 
     TokenStream::from(quote! {
+        #[allow(dead_code)]
         #function
 
         #[test_case]
