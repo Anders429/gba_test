@@ -170,3 +170,43 @@ jobs:
         read-register: 'r0'
         rom-path: allocate.gba
         success-code: 0  # Pass
+
+  result_pass:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@nightly
+      with:
+        components: rust-src
+    - run: sudo apt-get install binutils-arm-none-eabi
+    - run: cd tests/result_pass && cargo test --no-run --message-format=json | tee results.json
+    - run: echo "ROM_PATH=$(cd tests/parse_executable && cargo run ../result_pass/results.json)" >> $GITHUB_ENV
+    - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} result_pass.gba
+    - run: cargo install gbafix
+    - run: gbafix result_pass.gba
+    - uses: felixjones/github-mgba-rom-test@v1
+      with:
+        swi-call: 0x27
+        read-register: 'r0'
+        rom-path: result_pass.gba
+        success-code: 0  # Pass
+
+  result_fail:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@nightly
+      with:
+        components: rust-src
+    - run: sudo apt-get install binutils-arm-none-eabi
+    - run: cd tests/result_fail && cargo test --no-run --message-format=json | tee results.json
+    - run: echo "ROM_PATH=$(cd tests/parse_executable && cargo run ../result_fail/results.json)" >> $GITHUB_ENV
+    - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} result_fail.gba
+    - run: cargo install gbafix
+    - run: gbafix result_fail.gba
+    - uses: felixjones/github-mgba-rom-test@v1
+      with:
+        swi-call: 0x27
+        read-register: 'r0'
+        rom-path: result_fail.gba
+        success-code: 1  # Fail

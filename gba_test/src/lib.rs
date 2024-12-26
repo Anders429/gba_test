@@ -86,6 +86,7 @@ mod allocator;
 mod log;
 mod runner;
 mod runtime;
+mod termination;
 mod test;
 mod test_case;
 mod ui;
@@ -94,6 +95,7 @@ mod ui;
 #[cfg_attr(doc_cfg, doc(cfg(feature = "macros")))]
 pub use gba_test_macros::test;
 pub use runner::runner;
+pub use termination::Termination;
 #[doc(hidden)]
 pub use test_case::Test;
 pub use test_case::{Ignore, ShouldPanic, TestCase};

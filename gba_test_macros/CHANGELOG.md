@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+### Added
+- Support for returning `Result<T, E>` from tests, as well as other custom return types.
+
 ## 0.2.0 - 2024-12-24
 ### Fixed
 - Errors now highlight test name instead of test macro.

@@ -31,7 +31,9 @@
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
-use syn::{parse, token, Attribute, ExprParen, Ident, ItemFn, Meta};
+use syn::{
+    parse, parse_str, token, Attribute, Error, ExprParen, Ident, ItemFn, Meta, ReturnType, Type,
+};
 
 /// Structured representation of the configuration attributes provided for a test.
 struct Attributes {
@@ -122,10 +124,24 @@ pub fn test(_attr: TokenStream, item: TokenStream) -> TokenStream {
         Err(error) => return error.into_compile_error().into(),
     };
     let name = function.sig.ident.clone();
+    let return_type = match &function.sig.output {
+        ReturnType::Default => parse_str::<Type>("()").unwrap(),
+        ReturnType::Type(_, return_type) => *return_type.clone(),
+    };
     let attributes = Attributes::from(&function.attrs);
     let ignore = attributes.ignore;
     let ignore_message = attributes.ignore_message;
     let should_panic = attributes.should_panic;
+    if return_type != parse_str::<Type>("()").unwrap()
+        && should_panic != Ident::new("No", Span::call_site())
+    {
+        return Error::new_spanned(
+            function,
+            "functions using `#[should_panic]` must return `()`",
+        )
+        .into_compile_error()
+        .into();
+    }
 
     TokenStream::from(quote! {
         #[allow(dead_code)]
@@ -133,7 +149,7 @@ pub fn test(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
         #[test_case]
         #[allow(non_upper_case_globals)]
-        const #name: ::gba_test::Test = ::gba_test::Test {
+        const #name: ::gba_test::Test::<#return_type> = ::gba_test::Test::<#return_type> {
             name: stringify!(#name),
             module: module_path!(),
             test: #name,

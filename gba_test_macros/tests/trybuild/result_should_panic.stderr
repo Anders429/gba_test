@@ -1,0 +1,8 @@
+error: functions using `#[should_panic]` must return `()`
+ --> tests/trybuild/result_should_panic.rs:6:1
+  |
+6 | / #[should_panic]
+7 | | fn foo() -> Result<(), ()> {
+8 | |     Ok(())
+9 | | }
+  | |_^

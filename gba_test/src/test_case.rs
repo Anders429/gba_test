@@ -8,6 +8,8 @@
 //! [`runner`]: crate::runner()
 //! [`test`]: crate::test
 
+use crate::Termination;
+
 /// Defines whether a test should be ignored or not.
 ///
 /// The easiest way to define if a test should be ignored is to use the `#[ignore]` attribute when
@@ -100,13 +102,13 @@ pub trait TestCase {
 /// is not considered part of the public API. If you want to use a similar struct, you should
 /// define one locally and implement `TestCase` for it directly.
 #[doc(hidden)]
-pub struct Test {
+pub struct Test<T> {
     /// The name of the test.
     pub name: &'static str,
     /// The module the test is in.
     pub module: &'static str,
     /// The test function itself.
-    pub test: fn(),
+    pub test: fn() -> T,
     /// Whether the test should be excluded.
     ///
     /// This is set by the `#[ignore]` attribute.
@@ -117,7 +119,10 @@ pub struct Test {
     pub should_panic: ShouldPanic,
 }
 
-impl TestCase for Test {
+impl<T> TestCase for Test<T>
+where
+    T: Termination,
+{
     fn name(&self) -> &str {
         self.name
     }
@@ -131,7 +136,7 @@ impl TestCase for Test {
     }
 
     fn run(&self) {
-        (self.test)()
+        (self.test)().terminate()
     }
 
     fn ignore(&self) -> Ignore {
