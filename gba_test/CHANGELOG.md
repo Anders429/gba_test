@@ -3,6 +3,8 @@
 ## Unreleased
 ### Added
 - Support for returning `Result<T, E>` from tests, as well as other custom return types.
+### Fixed
+- Scrolling through multiple failed tests no longer breaks due to incorrect pointer alignment arithmetic.
 
 ## 0.2.0 - 2024-12-24
 ### Added
