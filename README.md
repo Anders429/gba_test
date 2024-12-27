@@ -119,7 +119,10 @@ gbafix test.gba
 Now, `test.gba` is prepared to run on real Game Boy Advance hardware. See documentation for your flash cart for instructions on flashing the `.gba` file to the cartridge and running it.
 
 ### Running using `mgba-rom-test`
-`gba_test` is configured to be run with the [`mgba-rom-test`](https://github.com/mgba-emu/mgba/blob/master/src/platform/test/rom-test-main.c) binary using SWI call `0x27` with `r0` as the output register. An exit value of `0` is considered a successful test run.
+`gba_test` is configured to be run with the [`mgba-rom-test`](https://github.com/mgba-emu/mgba/blob/master/src/platform/test/rom-test-main.c) binary using SWI call `0x27` with `r0` as the output register. The following exit values may be emitted:
+- `0` - A successful test run.
+- `1` - One or more tests failed.
+- `2` - The tests failed to complete. This indicates that a panic occurred outside of test execution.
 
 To use `mgba-rom-test` in continuous integration with GitHub Actions, it is recommended to use the [`github-mgba-rom-test`](https://github.com/felixjones/github-mgba-rom-test) action. See this project's GitHub Actions setup for examples of this workflow.
 
