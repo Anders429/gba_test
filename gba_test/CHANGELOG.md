@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 - 2024-12-27
 ### Added
 - Support for returning `Result<T, E>` from tests, as well as other custom return types.
 - `ShouldPanic::YesWithMessage(message)` to indicate that a panic message should contain the given substring.
