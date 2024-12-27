@@ -60,6 +60,8 @@ pub enum ShouldPanic {
     No,
     /// The test is expected to panic during execution.
     Yes,
+    /// The test is expected to panic with the given substring present in the panic message.
+    YesWithMessage(&'static str),
 }
 
 /// Defines a test case executable by the test runner.
@@ -217,7 +219,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expectd = "assertion failed: false")]
+    #[should_panic(expected = "assertion failed: false")]
     fn test_run_panic() {
         let test = Test {
             name: "",

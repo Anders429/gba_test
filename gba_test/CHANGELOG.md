@@ -3,6 +3,7 @@
 ## Unreleased
 ### Added
 - Support for returning `Result<T, E>` from tests, as well as other custom return types.
+- `ShouldPanic::YesWithMessage(message)` to indicate that a panic message should contain the given substring.
 ### Fixed
 - Scrolling through multiple failed tests no longer breaks due to incorrect pointer alignment arithmetic.
 - Filtered test scrolling will no longer panic due to underflows.

@@ -32,7 +32,8 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
 use syn::{
-    parse, parse_str, token, Attribute, Error, ExprParen, Ident, ItemFn, Meta, ReturnType, Type,
+    parse, parse2, parse_str, token, Attribute, Error, ExprParen, Ident, ItemFn, Meta, ReturnType,
+    Type,
 };
 
 /// Structured representation of the configuration attributes provided for a test.
@@ -40,6 +41,7 @@ struct Attributes {
     ignore: Ident,
     ignore_message: Option<ExprParen>,
     should_panic: Ident,
+    should_panic_message: Option<ExprParen>,
 }
 
 impl Attributes {
@@ -49,31 +51,68 @@ impl Attributes {
             ignore: Ident::new("No", Span::call_site()),
             ignore_message: None,
             should_panic: Ident::new("No", Span::call_site()),
+            should_panic_message: None,
         }
     }
 }
 
-impl From<&Vec<Attribute>> for Attributes {
-    fn from(attributes: &Vec<Attribute>) -> Self {
+impl TryFrom<&Vec<Attribute>> for Attributes {
+    type Error = Error;
+
+    fn try_from(attributes: &Vec<Attribute>) -> Result<Self, Self::Error> {
         let mut result = Attributes::new();
 
         for attribute in attributes {
             if let Some(ident) = attribute.path().get_ident() {
                 match ident.to_string().as_str() {
                     "ignore" => {
-                        if let Meta::NameValue(name_value) = &attribute.meta {
-                            result.ignore = Ident::new("YesWithMessage", Span::call_site());
-                            result.ignore_message = Some(ExprParen {
-                                attrs: Vec::new(),
-                                paren_token: token::Paren::default(),
-                                expr: Box::new(name_value.value.clone()),
-                            });
-                        } else {
-                            result.ignore = Ident::new("Yes", Span::call_site());
+                        match &attribute.meta {
+                            Meta::NameValue(name_value) => {
+                                result.ignore = Ident::new("YesWithMessage", Span::call_site());
+                                result.ignore_message = Some(ExprParen {
+                                    attrs: Vec::new(),
+                                    paren_token: token::Paren::default(),
+                                    expr: Box::new(name_value.value.clone()),
+                                });
+                            }
+                            Meta::List(_) => return Err(Error::new_spanned(attribute, "valid forms for the attribute are `#[ignore]` and `#[ignore = \"reason\"]`")),
+                            Meta::Path(_) => result.ignore = Ident::new("Yes", Span::call_site()),
                         }
                     }
                     "should_panic" => {
-                        result.should_panic = Ident::new("Yes", Span::call_site());
+                        match &attribute.meta {
+                            Meta::List(meta_list) => {
+                                if let Ok(Meta::NameValue(name_value)) =
+                                    parse2(meta_list.tokens.clone())
+                                {
+                                    if name_value.path == parse_str("expected").unwrap() {
+                                        result.should_panic =
+                                            Ident::new("YesWithMessage", Span::call_site());
+                                        result.should_panic_message = Some(ExprParen {
+                                            attrs: Vec::new(),
+                                            paren_token: token::Paren::default(),
+                                            expr: Box::new(name_value.value),
+                                        });
+                                    } else {
+                                        return Err(Error::new_spanned(attribute, "argument must be of the form: `expected = \"error message\"`"));
+                                    }
+                                } else {
+                                    return Err(Error::new_spanned(attribute, "argument must be of the form: `expected = \"error message\"`"));
+                                }
+                            }
+                            Meta::NameValue(name_value) => {
+                                result.should_panic =
+                                    Ident::new("YesWithMessage", Span::call_site());
+                                result.should_panic_message = Some(ExprParen {
+                                    attrs: Vec::new(),
+                                    paren_token: token::Paren::default(),
+                                    expr: Box::new(name_value.value.clone()),
+                                });
+                            }
+                            Meta::Path(_) => {
+                                result.should_panic = Ident::new("Yes", Span::call_site());
+                            }
+                        }
                     }
                     _ => {
                         // Not supported.
@@ -82,7 +121,7 @@ impl From<&Vec<Attribute>> for Attributes {
             }
         }
 
-        result
+        Ok(result)
     }
 }
 
@@ -128,10 +167,14 @@ pub fn test(_attr: TokenStream, item: TokenStream) -> TokenStream {
         ReturnType::Default => parse_str::<Type>("()").unwrap(),
         ReturnType::Type(_, return_type) => *return_type.clone(),
     };
-    let attributes = Attributes::from(&function.attrs);
+    let attributes = match Attributes::try_from(&function.attrs) {
+        Ok(attributes) => attributes,
+        Err(error) => return error.into_compile_error().into(),
+    };
     let ignore = attributes.ignore;
     let ignore_message = attributes.ignore_message;
     let should_panic = attributes.should_panic;
+    let should_panic_message = attributes.should_panic_message;
     if return_type != parse_str::<Type>("()").unwrap()
         && should_panic != Ident::new("No", Span::call_site())
     {
@@ -154,7 +197,7 @@ pub fn test(_attr: TokenStream, item: TokenStream) -> TokenStream {
             module: module_path!(),
             test: #name,
             ignore: ::gba_test::Ignore::#ignore #ignore_message,
-            should_panic: ::gba_test::ShouldPanic::#should_panic,
+            should_panic: ::gba_test::ShouldPanic::#should_panic #should_panic_message,
         };
     })
 }

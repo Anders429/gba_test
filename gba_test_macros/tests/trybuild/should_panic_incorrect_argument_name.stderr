@@ -1,0 +1,5 @@
+error: argument must be of the form: `expected = "error message"`
+ --> tests/trybuild/should_panic_incorrect_argument_name.rs:6:1
+  |
+6 | #[should_panic(expectd = "foo")]
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

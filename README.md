@@ -26,7 +26,7 @@ runner = "mgba"
 rustflags = ["-Clinker=arm-none-eabi-ld", "-Clink-arg=-Tgba.ld", "-Ztrap-unreachable=no"]
 
 [unstable]
-build-std = ["core"]
+build-std = ["alloc", "core"]
 ```
 
 ### Adding `gba_test` to your list of dependencies

@@ -1,0 +1,5 @@
+error: valid forms for the attribute are `#[ignore]` and `#[ignore = "reason"]`
+ --> tests/trybuild/ignore_invalid_arguments.rs:6:1
+  |
+6 | #[ignore("foo")]
+  | ^^^^^^^^^^^^^^^^

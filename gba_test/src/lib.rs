@@ -78,6 +78,7 @@
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
 #![allow(clippy::needless_doctest_main, static_mut_refs)]
 
+extern crate alloc;
 #[cfg(test)]
 extern crate self as gba_test;
 

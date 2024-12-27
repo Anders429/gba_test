@@ -8,6 +8,7 @@ use crate::{
     allocator, allocator::Allocator, log, test_case::Ignore, ui, Outcome, ShouldPanic, TestCase,
     Tests,
 };
+use alloc::format;
 use core::{arch::asm, fmt::Display, mem::MaybeUninit, panic::PanicInfo, ptr::addr_of};
 
 // TODO: Make these more type-safe.
@@ -104,6 +105,16 @@ fn panic(info: &PanicInfo) -> ! {
                     log::info!("test passed");
                     store_outcome(Outcome::<&str>::Passed);
                 }
+                ShouldPanic::YesWithMessage(message) => {
+                    let panic_message = format!("{}", info);
+                    if panic_message.contains(message) {
+                        log::info!("test passed");
+                        store_outcome(Outcome::<&str>::Passed);
+                    } else {
+                        log::info!("test failed");
+                        store_outcome(Outcome::Failed(format_args!("panic did not contain expected string\n     panic message: `{panic_message}`\nexpected substring: `{message}`")))
+                    }
+                }
             }
 
             // Soft resetting the system allows us to recover from the panicked state and continue testing.
@@ -187,7 +198,7 @@ pub fn runner(tests: &'static [&'static dyn TestCase]) -> ! {
                         log::info!("test passed");
                         store_outcome(Outcome::<&str>::Passed);
                     }
-                    ShouldPanic::Yes => {
+                    ShouldPanic::Yes | ShouldPanic::YesWithMessage(_) => {
                         log::info!("test failed");
                         store_outcome(Outcome::Failed("note: test did not panic as expected"))
                     }

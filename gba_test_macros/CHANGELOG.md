@@ -3,6 +3,9 @@
 ## Unreleased
 ### Added
 - Support for returning `Result<T, E>` from tests, as well as other custom return types.
+- Expected messages for `#[should_panic]` attributes.
+### Fixed
+- `#[ignore]` no longer accepts incorrect arguments.
 
 ## 0.2.0 - 2024-12-24
 ### Fixed
