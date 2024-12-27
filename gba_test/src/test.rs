@@ -351,7 +351,9 @@ impl Filter for Ignored {
 pub(crate) struct Window<Filter, const SIZE: usize> {
     test_case: *const &'static dyn TestCase,
     outcome: *const OutcomeVariant,
+    /// The error message at the top of the screen.
     error_message_front: *const (usize, u8),
+    /// The error message at the bottom of the screen.
     error_message_back: *const (usize, u8),
 
     length: usize,
@@ -370,9 +372,7 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
             let bytes = error_message.cast::<u8>().add(4);
             let next_error_message = bytes.add(length + 4);
             // Re-align.
-            *error_message = next_error_message
-                .byte_add(4 - (next_error_message as usize % 4) % 4)
-                .cast();
+            *error_message = next_error_message.align_forward().cast();
             str::from_utf8_unchecked(slice::from_raw_parts(bytes, length))
         }
     }
@@ -384,9 +384,7 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
             let bytes = error_message_length.cast::<u8>().sub(length);
             let prev_error_message = bytes.sub(4);
             // Re-align.
-            *error_message = prev_error_message
-                .sub(prev_error_message as usize % 4)
-                .cast();
+            *error_message = prev_error_message.align_backward().cast();
             str::from_utf8_unchecked(slice::from_raw_parts(bytes, length))
         }
     }
