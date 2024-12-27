@@ -389,7 +389,7 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
         }
     }
 
-    fn next_unfiltered(&mut self) -> Option<(&'static dyn TestCase, Outcome<&'static str>)> {
+    fn next_unfiltered(&mut self) -> Option<Outcome<&'static str>> {
         if self.filtered_index == self.filtered_length.saturating_sub(SIZE) {
             return None;
         }
@@ -398,24 +398,24 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
             self.test_case = self.test_case.add(1);
             self.outcome = self.outcome.add(1);
         }
-        let outcome = match unsafe { self.outcome.add(17).read() } {
+        let outcome = match unsafe { self.outcome.read() } {
             OutcomeVariant::Passed => Outcome::Passed,
             OutcomeVariant::Ignored => Outcome::Ignored,
             OutcomeVariant::Failed => {
-                Outcome::Failed(Self::next_error_message(&mut self.error_message_back))
+                Outcome::Failed(Self::next_error_message(&mut self.error_message_front))
             }
         };
         // Check if the dropped outcome in the window requires moving the error message pointer.
         if let OutcomeVariant::Failed = unsafe { self.outcome.sub(1).read() } {
-            Self::next_error_message(&mut self.error_message_front);
+            Self::next_error_message(&mut self.error_message_back);
         }
 
         self.index += 1;
 
-        Some((unsafe { self.test_case.read() }, outcome))
+        Some(outcome)
     }
 
-    fn prev_unfiltered(&mut self) -> Option<(&'static dyn TestCase, Outcome<&'static str>)> {
+    fn prev_unfiltered(&mut self) -> Option<Outcome<&'static str>> {
         if self.filtered_index == 0 {
             return None;
         }
@@ -438,7 +438,7 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
 
         self.index -= 1;
 
-        Some((unsafe { self.test_case.read() }, outcome))
+        Some(outcome)
     }
 }
 
@@ -478,7 +478,7 @@ where
     }
 
     pub(crate) fn new(test_outcomes: &TestOutcomes, length: usize) -> Self {
-        Self {
+        let mut window = Self {
             test_case: test_outcomes.tests.as_ptr(),
             outcome: test_outcomes.outcomes as *const OutcomeVariant,
             error_message_front: test_outcomes.data as *const (usize, u8),
@@ -495,16 +495,23 @@ where
             filtered_index: 0,
 
             filter: PhantomData,
+        };
+        while let Some(outcome) = window.next_unfiltered() {
+            if Filter::filter(&outcome) {
+                break;
+            }
         }
+
+        window
     }
 
-    pub(crate) fn next(&mut self) -> Option<(&'static dyn TestCase, Outcome<&'static str>)> {
+    pub(crate) fn next(&mut self) -> Option<Outcome<&'static str>> {
         let old_self = self.clone();
 
-        while let Some((test_case, outcome)) = self.next_unfiltered() {
+        while let Some(outcome) = self.next_unfiltered() {
             if Filter::filter(&outcome) {
                 self.filtered_index += 1;
-                return Some((test_case, outcome));
+                return Some(outcome);
             }
         }
         // We reached the end of the list and found nothing not filtered.
@@ -513,13 +520,13 @@ where
         None
     }
 
-    pub(crate) fn prev(&mut self) -> Option<(&'static dyn TestCase, Outcome<&'static str>)> {
+    pub(crate) fn prev(&mut self) -> Option<Outcome<&'static str>> {
         let old_self = self.clone();
 
-        while let Some((test_case, outcome)) = self.prev_unfiltered() {
+        while let Some(outcome) = self.prev_unfiltered() {
             if Filter::filter(&outcome) {
                 self.filtered_index -= 1;
-                return Some((test_case, outcome));
+                return Some(outcome);
             }
         }
         // We reached the beginning of the list and found nothing not filtered.
