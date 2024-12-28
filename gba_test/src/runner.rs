@@ -106,7 +106,7 @@ fn panic(info: &PanicInfo) -> ! {
                     store_outcome(Outcome::<&str>::Passed);
                 }
                 ShouldPanic::YesWithMessage(message) => {
-                    let panic_message = format!("{}", info);
+                    let panic_message = format!("{}", info.message());
                     if panic_message.contains(message) {
                         log::info!("test passed");
                         store_outcome(Outcome::<&str>::Passed);

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+### Fixed
+- `ShouldPanic::YesWithMessage(message)` now matches against the panic message itself, not including location info.
+
 ## 0.3.0 - 2024-12-27
 ### Added
 - Support for returning `Result<T, E>` from tests, as well as other custom return types.
