@@ -2,7 +2,7 @@
 
 use core::fmt::Debug;
 
-/// A trait for implementing arbitrary return types for [`#[test]`]s.
+/// A trait for implementing arbitrary return types for [`#[test]`](crate::test)s.
 ///
 /// This trait is analogous to the standard library's
 /// [`Termination`](https://doc.rust-lang.org/std/process/trait.Termination.html). The main
