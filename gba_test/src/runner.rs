@@ -64,7 +64,7 @@ fn reset() -> ! {
                 .with_sio_registers()
                 .with_sound_registers()
                 .with_other_registers()
-                .as_u8(),
+                .to_u8(),
             options(noreturn),
         }
     };

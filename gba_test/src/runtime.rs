@@ -78,7 +78,7 @@ global_asm! {
     waitcnt_offset = const WAITCNT_OFFSET,
     waitcnt_setting = const 0x4317 /*sram8,r0:3.1,r1:4.2,r2:8.2,no_phi,prefetch*/,
     dma3_offset = const DMA3_OFFSET,
-    dma3_setting = const DMA_32_BIT_MEMCPY.as_u16(),
+    dma3_setting = const DMA_32_BIT_MEMCPY.to_u16(),
 }
 
 global_asm! {
