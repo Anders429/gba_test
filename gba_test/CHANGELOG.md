@@ -5,6 +5,7 @@
 - `ShouldPanic::YesWithMessage(message)` no longer requires dynamic allocation.
 ### Fixed
 - `ShouldPanic::YesWithMessage(message)` now matches against the panic message itself, not including location info.
+- Attempting to store panic data with not enough space now correctly displays the data in the error message.
 
 ## 0.3.0 - 2024-12-27
 ### Added

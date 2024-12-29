@@ -238,8 +238,9 @@ impl Tests {
         }
         if let Outcome::Failed(data) = outcome {
             let mut error_message = unsafe { ErrorMessage::new(&mut self.data) };
-            write!(error_message, "{}", data)
-                .expect("not enough space to store error message: {data}");
+            if write!(error_message, "{}", data).is_err() {
+                panic!("not enough space to store error message: {data}");
+            }
         }
 
         self.index += 1;
