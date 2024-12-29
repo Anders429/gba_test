@@ -86,7 +86,10 @@ mod allocator;
 mod contains;
 mod log;
 mod runner;
-mod runtime;
+// #[cfg(not(gba_test_mb))]
+// mod runtime;
+// #[cfg(gba_test_mb)]
+mod runtime_mb;
 mod termination;
 mod test;
 mod test_case;

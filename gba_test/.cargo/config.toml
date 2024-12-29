@@ -3,7 +3,7 @@ target = "thumbv4t-none-eabi"
 
 [target.thumbv4t-none-eabi]
 runner = "mgba"
-rustflags = ["-Clinker=arm-none-eabi-ld", "-Clink-arg=-Tgba.ld", "-Ztrap-unreachable=no"]
+rustflags = ["-Clinker=arm-none-eabi-ld", "-Clink-arg=-Tmb.ld", "-Ztrap-unreachable=no", "--cfg=gba_test_mb"]
 
 [unstable]
 build-std = ["alloc", "core"]

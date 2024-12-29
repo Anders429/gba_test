@@ -165,12 +165,14 @@ fn panic(info: &PanicInfo) -> ! {
 /// }
 /// ```
 pub fn runner(tests: &'static [&'static dyn TestCase]) -> ! {
+    log::info!("start");
     if unsafe { !INITIALIZED } {
         // Use the remaining unused space in ewram as our data heap.
         extern "C" {
             static __ewram_data_end: u8;
         }
         unsafe {
+            log::info!("initializing tests with end point {:?}", addr_of!(__ewram_data_end) as usize);
             TESTS = MaybeUninit::new(Tests::new(
                 tests,
                 (addr_of!(__ewram_data_end) as usize) as *mut u8,
@@ -179,6 +181,7 @@ pub fn runner(tests: &'static [&'static dyn TestCase]) -> ! {
         }
     }
 
+    log::info!("initializing allocator");
     unsafe {
         allocator::init(TESTS.assume_init_ref().data_cursor().cast::<u8>());
     }
@@ -208,6 +211,8 @@ pub fn runner(tests: &'static [&'static dyn TestCase]) -> ! {
         //
         // Note that this will reset the program. This stops execution at this point and calls
         // `main()` all over again.
+        #[cfg(gba_test_mb)]
+        unsafe {(0x0300_7ffa as *mut bool).write_volatile(true)}
         reset();
     }
 
