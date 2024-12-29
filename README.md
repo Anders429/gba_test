@@ -26,7 +26,7 @@ runner = "mgba"
 rustflags = ["-Clinker=arm-none-eabi-ld", "-Clink-arg=-Tgba.ld", "-Ztrap-unreachable=no"]
 
 [unstable]
-build-std = ["alloc", "core"]
+build-std = ["core"]
 ```
 
 ### Adding `gba_test` to your list of dependencies
@@ -125,6 +125,38 @@ Now, `test.gba` is prepared to run on real Game Boy Advance hardware. See docume
 - `2` - The tests failed to complete. This indicates that a panic occurred outside of test execution.
 
 To use `mgba-rom-test` in continuous integration with GitHub Actions, it is recommended to use the [`github-mgba-rom-test`](https://github.com/felixjones/github-mgba-rom-test) action. See this project's GitHub Actions setup for examples of this workflow.
+
+## Dynamic Allocation
+`gba_test` provides a global allocator, allowing it to test code that relies on [`alloc`](https://doc.rust-lang.org/alloc/). To use `alloc` with the provided global allocator, add it to your cargo configuration:
+
+``` toml
+# ...
+
+[unstable]
+build-std = ["core", "alloc"]
+```
+
+Now you can use `alloc` through an `extern crate alloc;` in your test file. For example:
+
+``` rust
+#![no_std]
+#![cfg_attr(test, no_main)]
+#![cfg_attr(test, feature(custom_test_frameworks))]
+#![cfg_attr(test, test_runner(gba_test::runner))]
+#![cfg_attr(test, reexport_test_harness_main = "test_harness")]
+
+extern crate alloc;
+
+#[cfg(test)]
+#[no_mangle]
+pub fn main() {
+    test_harness()
+}
+```
+
+The global allocator will allocate dynamic memory in EWRAM. EWRAM is 256KiB, with some of that space also being used to store test results and other state. Be aware that tests which try to allocate more memory than is available will cause test execution to fail. Note also that the allocator provided is a simple bump allocator, so excessive allocations within a single test may consume more memory than is expected.
+
+Testing using custom global allocators is not supported.
 
 ## Logging
 Some emulators, such as [mGBA](https://mgba.io/) or [no$gba](https://problemkaputt.de/gba.htm), support logging. `gba_test` provides optional integration with the [`log`](https://crates.io/crates/log) crate to log information about test running. You can enable logging through the log feature:

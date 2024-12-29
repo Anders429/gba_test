@@ -5,10 +5,9 @@
 //! apply for other targets.
 
 use crate::{
-    allocator, allocator::Allocator, log, test_case::Ignore, ui, Outcome, ShouldPanic, TestCase,
-    Tests,
+    allocator, allocator::Allocator, contains::contains, log, test_case::Ignore, ui, Outcome,
+    ShouldPanic, TestCase, Tests,
 };
-use alloc::format;
 use core::{arch::asm, fmt::Display, mem::MaybeUninit, panic::PanicInfo, ptr::addr_of};
 
 // TODO: Make these more type-safe.
@@ -106,8 +105,8 @@ fn panic(info: &PanicInfo) -> ! {
                     store_outcome(Outcome::<&str>::Passed);
                 }
                 ShouldPanic::YesWithMessage(message) => {
-                    let panic_message = format!("{}", info.message());
-                    if panic_message.contains(message) {
+                    let panic_message = info.message();
+                    if contains(info, message) {
                         log::info!("test passed");
                         store_outcome(Outcome::<&str>::Passed);
                     } else {
