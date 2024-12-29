@@ -99,7 +99,7 @@ fn draw_test_outcomes<'a, TestOutcomes, const SIZE: usize>(
                     Page::Passed(_) => (14..21).contains(&i),
                     Page::Ignored(_) => i >= 21,
                 } {
-                    cursor.write_volatile(4 << 12 | 1);
+                    cursor.write_volatile((4 << 12) | 1);
                 } else {
                     cursor.write_volatile(0);
                 }
@@ -120,7 +120,7 @@ fn draw_test_outcomes<'a, TestOutcomes, const SIZE: usize>(
         {
             for _ in 0..30 {
                 unsafe {
-                    cursor.write_volatile(4 << 12 | 1);
+                    cursor.write_volatile((4 << 12) | 1);
                     cursor = cursor.add(1);
                 }
             }
