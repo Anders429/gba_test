@@ -1,26 +1,9 @@
+use crate::mmio::DmaControl;
 use core::arch::global_asm;
 
-#[derive(Debug)]
-#[repr(transparent)]
-struct DmaControl(u16);
-
-impl DmaControl {
-    const fn new() -> Self {
-        Self(0)
-    }
-
-    const fn with_transfer_32bit(self, value: bool) -> Self {
-        DmaControl((self.0 & !(1 << 10)) | ((value as u16) << 10))
-    }
-
-    const fn with_enabled(self, value: bool) -> Self {
-        DmaControl((self.0 & !(1 << 15)) | ((value as u16) << 15))
-    }
-}
-
-const DMA_32_BIT_MEMCPY: DmaControl = DmaControl::new()
-    .with_transfer_32bit(true)
-    .with_enabled(true);
+const MMIO_BASE: usize = 0x0400_0000;
+const WAITCNT_OFFSET: usize = 0x0000_0204;
+const DMA_32_BIT_MEMCPY: DmaControl = DmaControl::new().with_transfer_32bit().with_enabled();
 const DMA3_OFFSET: usize = 0x0000_00D4;
 const IME_OFFSET: usize = 0x0000_0208;
 
@@ -91,11 +74,11 @@ global_asm! {
 
     ".code 16",
 
-    mmio_base = const 0x0400_0000,
-    waitcnt_offset = const 0x204,
+    mmio_base = const MMIO_BASE,
+    waitcnt_offset = const WAITCNT_OFFSET,
     waitcnt_setting = const 0x4317 /*sram8,r0:3.1,r1:4.2,r2:8.2,no_phi,prefetch*/,
     dma3_offset = const DMA3_OFFSET,
-    dma3_setting = const DMA_32_BIT_MEMCPY.0,
+    dma3_setting = const DMA_32_BIT_MEMCPY.as_u16(),
 }
 
 global_asm! {

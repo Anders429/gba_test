@@ -85,6 +85,7 @@ mod alignment;
 mod allocator;
 mod contains;
 mod log;
+mod mmio;
 mod runner;
 mod runtime;
 mod termination;

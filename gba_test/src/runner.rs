@@ -5,15 +5,22 @@
 //! apply for other targets.
 
 use crate::{
-    allocator, allocator::Allocator, contains::contains, log, test_case::Ignore, ui, Outcome,
-    ShouldPanic, TestCase, Tests,
+    allocator,
+    allocator::Allocator,
+    contains::contains,
+    log,
+    mmio::{
+        bios::{HaltControl, RegisterRamReset},
+        DisplayStatus, Interrupt,
+    },
+    test_case::Ignore,
+    ui, Outcome, ShouldPanic, TestCase, Tests,
 };
 use core::{arch::asm, fmt::Display, mem::MaybeUninit, panic::PanicInfo, ptr::addr_of};
 
-// TODO: Make these more type-safe.
-const DISPSTAT: *mut u16 = 0x0400_0004 as *mut u16;
+const DISPSTAT: *mut DisplayStatus = 0x0400_0004 as *mut DisplayStatus;
 const IME: *mut bool = 0x0400_0208 as *mut bool;
-const IE: *mut u16 = 0x0400_0200 as *mut u16;
+const IE: *mut Interrupt = 0x0400_0200 as *mut Interrupt;
 
 #[link_section = ".noinit"]
 static mut INITIALIZED: bool = false;
@@ -50,7 +57,14 @@ fn reset() -> ! {
         asm! {
             "swi #0x01",
             "swi #0x00",
-            in("r0") 0xFC,
+            in("r0") RegisterRamReset::new()
+                .with_palette()
+                .with_vram()
+                .with_oam()
+                .with_sio_registers()
+                .with_sound_registers()
+                .with_other_registers()
+                .as_u8(),
             options(noreturn),
         }
     };
@@ -81,7 +95,7 @@ pub(crate) fn report_result(result: usize) {
         asm! {
             "swi #0x27",
             in("r0") result,
-            in("r2") 0x00,
+            in("r2") HaltControl::Halt as u8,
         }
     }
 }
@@ -216,8 +230,8 @@ pub fn runner(tests: &'static [&'static dyn TestCase]) -> ! {
 
     // Enable interrupts.
     unsafe {
-        DISPSTAT.write_volatile(8);
-        IE.write_volatile(1);
+        DISPSTAT.write_volatile(DisplayStatus::ENABLE_VBLANK_INTERRUPTS);
+        IE.write_volatile(Interrupt::VBLANK);
         IME.write(true);
     }
 

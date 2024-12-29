@@ -3,12 +3,15 @@
 use super::{
     font, load_ui_tiles, wait_for_vblank, Cursor, BG0CNT, BG1CNT, DISPCNT, TEXT_ENTRIES, UI_ENTRIES,
 };
-use crate::runner::report_result;
+use crate::{
+    mmio::{DisplayStatus, Interrupt},
+    runner::report_result,
+};
 use core::{fmt::Write, panic::PanicInfo};
 
-const DISPSTAT: *mut u16 = 0x0400_0004 as *mut u16;
+const DISPSTAT: *mut DisplayStatus = 0x0400_0004 as *mut DisplayStatus;
 const IME: *mut bool = 0x0400_0208 as *mut bool;
-const IE: *mut u16 = 0x0400_0200 as *mut u16;
+const IE: *mut Interrupt = 0x0400_0200 as *mut Interrupt;
 
 /// Displays the panic info.
 ///
@@ -17,8 +20,8 @@ const IE: *mut u16 = 0x0400_0200 as *mut u16;
 pub(crate) fn display(info: &PanicInfo) -> ! {
     // Enable interrupts.
     unsafe {
-        DISPSTAT.write_volatile(8);
-        IE.write_volatile(1);
+        DISPSTAT.write_volatile(DisplayStatus::ENABLE_VBLANK_INTERRUPTS);
+        IE.write_volatile(Interrupt::VBLANK);
         IME.write(true);
     }
 
@@ -53,8 +56,8 @@ pub(crate) fn display(info: &PanicInfo) -> ! {
 
     // Disable interrupts.
     unsafe {
-        DISPSTAT.write_volatile(0);
-        IE.write_volatile(0);
+        DISPSTAT.write_volatile(DisplayStatus::NONE);
+        IE.write_volatile(Interrupt::NONE);
         IME.write(false);
     }
 
