@@ -1,5 +1,5 @@
 use super::{cursor::Cursor, wait_for_vblank, KEYINPUT, TEXT_ENTRIES, UI_ENTRIES};
-use crate::{test_case::TestCase, Outcome};
+use crate::{mmio::KeyInput, test_case::TestCase, Outcome};
 use core::fmt::Write;
 
 pub(super) fn show(test_case: &dyn TestCase, outcome: Outcome<&'static str>) {
@@ -46,7 +46,7 @@ pub(super) fn show(test_case: &dyn TestCase, outcome: Outcome<&'static str>) {
         wait_for_vblank();
         let keys = unsafe { KEYINPUT.read_volatile() };
 
-        if keys == 0b0000_0011_1111_1101 {
+        if keys.contains(KeyInput::B) {
             // B
             return;
         }

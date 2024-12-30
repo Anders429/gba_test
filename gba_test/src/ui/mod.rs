@@ -12,14 +12,14 @@ mod entry;
 mod font;
 mod palette;
 
-use crate::{test, test::TestOutcomes, test_case::TestCase, Outcome};
+use crate::{mmio::KeyInput, test, test::TestOutcomes, test_case::TestCase, Outcome};
 use core::{arch::asm, cmp::min, fmt::Write};
 use cursor::Cursor;
 
 const DISPCNT: *mut u16 = 0x0400_0000 as *mut u16;
 const BG0CNT: *mut u16 = 0x0400_0008 as *mut u16;
 const BG1CNT: *mut u16 = 0x0400_000A as *mut u16;
-const KEYINPUT: *mut u16 = 0x0400_0130 as *mut u16;
+const KEYINPUT: *mut KeyInput = 0x0400_0130 as *mut KeyInput;
 const TEXT_ENTRIES: *mut u16 = 0x0600_4000 as *mut u16;
 const UI_ENTRIES: *mut u16 = 0x0600_C000 as *mut u16;
 const CHARBLOCK2: *mut [u32; 8] = 0x0600_8000 as *mut [u32; 8];
@@ -238,7 +238,7 @@ pub(crate) fn run(test_outcomes: TestOutcomes) -> ! {
     let mut failed_index = 0;
     let mut passed_index = 0;
     let mut ignored_index = 0;
-    let mut old_keys = 0b0000_0011_1111_1111;
+    let mut old_keys = KeyInput::NONE;
     loop {
         // Draw the tests that should currently be viewable.
         match page {
@@ -264,7 +264,7 @@ pub(crate) fn run(test_outcomes: TestOutcomes) -> ! {
             wait_for_vblank();
             let keys = unsafe { KEYINPUT.read_volatile() };
             if keys != old_keys {
-                if keys == 0b0000_0011_1011_1111 {
+                if keys.contains(KeyInput::UP) {
                     // Up
                     if *index == 0 {
                         page.prev();
@@ -274,7 +274,7 @@ pub(crate) fn run(test_outcomes: TestOutcomes) -> ! {
                     old_keys = keys;
                     break;
                 }
-                if keys == 0b0000_0011_0111_1111 {
+                if keys.contains(KeyInput::DOWN) {
                     // Down
                     if *index == min(17, length.saturating_sub(1)) {
                         page.next();
@@ -284,7 +284,7 @@ pub(crate) fn run(test_outcomes: TestOutcomes) -> ! {
                     old_keys = keys;
                     break;
                 }
-                if keys == 0b0000_0010_1111_1111 {
+                if keys.contains(KeyInput::R) {
                     // R
                     page = match page {
                         Page::All(_) => Page::Failed(&mut failed_window),
@@ -294,7 +294,7 @@ pub(crate) fn run(test_outcomes: TestOutcomes) -> ! {
                     old_keys = keys;
                     break;
                 }
-                if keys == 0b0000_0001_1111_1111 {
+                if keys.contains(KeyInput::L) {
                     // L
                     page = match page {
                         Page::Ignored(_) => Page::Passed(&mut passed_window),
@@ -304,7 +304,7 @@ pub(crate) fn run(test_outcomes: TestOutcomes) -> ! {
                     old_keys = keys;
                     break;
                 }
-                if keys == 0b0000_0011_1111_1110 {
+                if keys.contains(KeyInput::A) {
                     // A
                     if let Some((test_case, outcome)) = page.get(*index) {
                         entry::show(test_case, outcome);
