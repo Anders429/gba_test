@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.1 - 2024-12-31
 ### Changed
 - `ShouldPanic::YesWithMessage(message)` no longer requires dynamic allocation.
 ### Fixed
