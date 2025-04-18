@@ -168,6 +168,7 @@ fn draw_test_outcomes<'a, TestOutcomes, const SIZE: usize>(
     }
 }
 
+#[derive(Debug)]
 enum Page<'a, const SIZE: usize> {
     All(&'a mut test::Window<test::All, SIZE>),
     Failed(&'a mut test::Window<test::Failed, SIZE>),

@@ -317,6 +317,7 @@ pub(crate) trait Filter {
     fn filter(outcome: &Outcome<&'static str>) -> bool;
 }
 
+#[derive(Debug)]
 pub(crate) struct All;
 
 impl Filter for All {
@@ -325,6 +326,7 @@ impl Filter for All {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct Failed;
 
 impl Filter for Failed {
@@ -333,6 +335,7 @@ impl Filter for Failed {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct Passed;
 
 impl Filter for Passed {
@@ -341,6 +344,7 @@ impl Filter for Passed {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct Ignored;
 
 impl Filter for Ignored {
@@ -349,6 +353,7 @@ impl Filter for Ignored {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct Window<Filter, const SIZE: usize> {
     test_case: *const &'static dyn TestCase,
     outcome: *const OutcomeVariant,
@@ -403,12 +408,12 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
             OutcomeVariant::Passed => Outcome::Passed,
             OutcomeVariant::Ignored => Outcome::Ignored,
             OutcomeVariant::Failed => {
-                Outcome::Failed(Self::next_error_message(&mut self.error_message_front))
+                Outcome::Failed(Self::next_error_message(&mut self.error_message_back))
             }
         };
         // Check if the dropped outcome in the window requires moving the error message pointer.
         if let OutcomeVariant::Failed = unsafe { self.outcome.sub(1).read() } {
-            Self::next_error_message(&mut self.error_message_back);
+            Self::next_error_message(&mut self.error_message_front);
         }
 
         self.index += 1;

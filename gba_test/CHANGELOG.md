@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2 - 2025-04-17
+### Fixed
+- Incorrect error message pointer manipulation when paging down. This caused the pointers to move the wrong directions, which caused undefined behavior if repeated enough times to get pointers to point to test result data instead of message data.
+
 ## 0.3.1 - 2024-12-31
 ### Changed
 - `ShouldPanic::YesWithMessage(message)` no longer requires dynamic allocation.
