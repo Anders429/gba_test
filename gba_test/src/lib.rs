@@ -99,7 +99,7 @@ pub use gba_test_macros::test;
 pub use runner::runner;
 pub use termination::Termination;
 #[doc(hidden)]
-pub use test_case::Test;
+pub use test_case::{split_module_path, split_module_path_len, Test};
 pub use test_case::{Ignore, ShouldPanic, TestCase};
 
 use test::{Outcome, Tests};

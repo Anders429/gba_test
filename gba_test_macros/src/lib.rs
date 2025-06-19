@@ -194,7 +194,11 @@ pub fn test(_attr: TokenStream, item: TokenStream) -> TokenStream {
         #[allow(non_upper_case_globals)]
         const #name: ::gba_test::Test::<#return_type> = ::gba_test::Test::<#return_type> {
             name: stringify!(#name),
-            module: module_path!(),
+            modules: {
+                const MODULE_PATH_LEN: usize = ::gba_test::split_module_path_len(module_path!());
+                const MODULES: &'static [&'static str] = ::gba_test::split_module_path::<MODULE_PATH_LEN>(module_path!()).as_slice();
+                MODULES
+            },
             test: #name,
             ignore: ::gba_test::Ignore::#ignore #ignore_message,
             should_panic: ::gba_test::ShouldPanic::#should_panic #should_panic_message,
