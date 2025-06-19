@@ -87,7 +87,6 @@ fn reset() -> ! {
 /// Outside of a test emulator, this function should not halt the display of the test results.
 /// Since halting only persists until the next interrupt, the program will continue as soon as the
 /// next vblank interrupt is triggered.
-#[no_mangle]
 #[inline]
 #[instruction_set(arm::t32)]
 pub(crate) fn report_result(result: usize) {

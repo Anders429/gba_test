@@ -62,7 +62,7 @@ impl State {
 
     unsafe fn dealloc(this: *mut Self, ptr: *mut u8, layout: Layout) {
         // If this is the last allocation, we can move the cursor back.
-        if ptr as *const u8 == (*this).cursor {
+        if ptr::eq(ptr, (*this).cursor) {
             (*this).cursor = (*this).cursor.add(layout.size())
         }
     }
