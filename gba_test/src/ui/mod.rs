@@ -1,8 +1,6 @@
 /// Works like [`include_bytes!`], but the value is wrapped in [`Align4`].
 macro_rules! include_aligned_bytes {
-    ($file:expr $(,)?) => {{
-        crate::ui::Align4(*include_bytes!($file))
-    }};
+    ($file:expr $(,)?) => {{ crate::ui::Align4(*include_bytes!($file)) }};
 }
 
 pub(crate) mod panic;
@@ -10,9 +8,15 @@ pub(crate) mod panic;
 mod cursor;
 mod entry;
 mod font;
+mod modules;
 mod palette;
 
-use crate::{mmio::KeyInput, test, test::TestOutcomes, test_case::TestCase, Outcome};
+use crate::{
+    Outcome,
+    mmio::KeyInput,
+    test::{self, ModuleFilter, TestOutcomes},
+    test_case::TestCase,
+};
 use core::{arch::asm, cmp::min, fmt::Write};
 use cursor::Cursor;
 
@@ -169,14 +173,14 @@ fn draw_test_outcomes<'a, TestOutcomes, const SIZE: usize>(
 }
 
 #[derive(Debug)]
-enum Page<'a, const SIZE: usize> {
-    All(&'a mut test::Window<test::All, SIZE>),
-    Failed(&'a mut test::Window<test::Failed, SIZE>),
-    Passed(&'a mut test::Window<test::Passed, SIZE>),
-    Ignored(&'a mut test::Window<test::Ignored, SIZE>),
+enum Page<'a, 'b, const SIZE: usize> {
+    All(&'a mut test::Window<'b, test::All, SIZE>),
+    Failed(&'a mut test::Window<'b, test::Failed, SIZE>),
+    Passed(&'a mut test::Window<'b, test::Passed, SIZE>),
+    Ignored(&'a mut test::Window<'b, test::Ignored, SIZE>),
 }
 
-impl<const SIZE: usize> Page<'_, SIZE> {
+impl<const SIZE: usize> Page<'_, '_, SIZE> {
     fn prev(&mut self) {
         match self {
             Self::All(window) => window.prev(),
@@ -205,41 +209,54 @@ impl<const SIZE: usize> Page<'_, SIZE> {
     }
 }
 
-pub(crate) fn run(test_outcomes: TestOutcomes) -> ! {
-    // Enable BG0 and BG1.
-    unsafe {
-        BG0CNT.write_volatile(8 << 8);
-        BG1CNT.write_volatile((2 << 2) | (24 << 8));
-        DISPCNT.write_volatile(768);
-    }
-    font::load();
-    load_ui_tiles();
-
+fn run_with_module_filter<'a, 'b>(
+    test_outcomes: &'a TestOutcomes,
+    module_filter: Option<&'b ModuleFilter>,
+) -> Option<ModuleFilter<'a>>
+where
+    'a: 'b,
+{
     // Test selection.
-    let all_length = test_outcomes.iter().count();
+    let all_length = test_outcomes
+        .iter()
+        .filter(|(test_case, _)| module_filter.is_none_or(|filter| filter.filter(*test_case)))
+        .count();
     let failed_length = test_outcomes
         .iter()
-        .filter(|(_, outcome)| matches!(outcome, Outcome::Failed(_)))
+        .filter(|(test_case, outcome)| {
+            matches!(outcome, Outcome::Failed(_))
+                && module_filter.is_none_or(|filter| filter.filter(*test_case))
+        })
         .count();
     let passed_length = test_outcomes
         .iter()
-        .filter(|(_, outcome)| matches!(outcome, Outcome::Passed))
+        .filter(|(test_case, outcome)| {
+            matches!(outcome, Outcome::Passed)
+                && module_filter.is_none_or(|filter| filter.filter(*test_case))
+        })
         .count();
     let ignored_length = test_outcomes
         .iter()
-        .filter(|(_, outcome)| matches!(outcome, Outcome::Ignored))
+        .filter(|(test_case, outcome)| {
+            matches!(outcome, Outcome::Ignored)
+                && module_filter.is_none_or(|filter| filter.filter(*test_case))
+        })
         .count();
     let lengths = [all_length, failed_length, passed_length, ignored_length];
-    let mut all_window = test::Window::<test::All, 18>::new(&test_outcomes, all_length);
-    let mut failed_window = test::Window::<test::Failed, 18>::new(&test_outcomes, failed_length);
-    let mut passed_window = test::Window::<test::Passed, 18>::new(&test_outcomes, passed_length);
-    let mut ignored_window = test::Window::<test::Ignored, 18>::new(&test_outcomes, ignored_length);
+    let mut all_window =
+        test::Window::<test::All, 18>::new(&test_outcomes, all_length, module_filter);
+    let mut failed_window =
+        test::Window::<test::Failed, 18>::new(&test_outcomes, failed_length, module_filter);
+    let mut passed_window =
+        test::Window::<test::Passed, 18>::new(&test_outcomes, passed_length, module_filter);
+    let mut ignored_window =
+        test::Window::<test::Ignored, 18>::new(&test_outcomes, ignored_length, module_filter);
     let mut page = Page::All(&mut all_window);
     let mut all_index = 0;
     let mut failed_index = 0;
     let mut passed_index = 0;
     let mut ignored_index = 0;
-    let mut old_keys = KeyInput::NONE;
+    let mut old_keys = KeyInput::A;
     loop {
         // Draw the tests that should currently be viewable.
         match page {
@@ -313,9 +330,40 @@ pub(crate) fn run(test_outcomes: TestOutcomes) -> ! {
                         break;
                     }
                 }
+                if keys.contains(KeyInput::START) {
+                    // Start
+                    //
+                    // Allows the user to choose a module filter.
+                    if let Some(result) = modules::show(
+                        &test_outcomes,
+                        module_filter
+                            .map(|module_filter| module_filter.module_path())
+                            .unwrap_or(&[]),
+                    ) {
+                        return result;
+                    }
+                    old_keys = keys;
+                    break;
+                }
             }
 
             old_keys = keys;
         }
+    }
+}
+
+pub(crate) fn run(test_outcomes: TestOutcomes) -> ! {
+    // Enable BG0 and BG1.
+    unsafe {
+        BG0CNT.write_volatile(8 << 8);
+        BG1CNT.write_volatile((2 << 2) | (24 << 8));
+        DISPCNT.write_volatile(768);
+    }
+    font::load();
+    load_ui_tiles();
+
+    let mut module_filter = None;
+    loop {
+        module_filter = run_with_module_filter(&test_outcomes, module_filter.as_ref());
     }
 }

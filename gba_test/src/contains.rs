@@ -206,7 +206,7 @@ impl Write for EqualityComparison {
 
 #[cfg(test)]
 mod tests {
-    use super::{hash, ByteRemover, EqualityComparison};
+    use super::{ByteRemover, EqualityComparison, hash};
     use claims::{assert_ok, assert_some};
     use core::fmt::Write;
     use gba_test::test;

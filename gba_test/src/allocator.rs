@@ -21,7 +21,7 @@ use core::{
 static mut STATE: State = State {
     cursor: 0x0204_0000 as *const u8,
     limit: {
-        extern "C" {
+        unsafe extern "C" {
             static __ewram_data_end: u8;
         }
 

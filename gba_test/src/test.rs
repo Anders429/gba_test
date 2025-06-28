@@ -162,7 +162,11 @@ impl Tests {
     pub(crate) unsafe fn new(tests: &'static [&'static dyn TestCase], data: *mut u8) -> Self {
         let unsized_data = data.byte_add(tests.len()).align_forward() as *mut usize;
         if unsized_data as usize > EWRAM_MAX {
-            panic!("not enough memory available to store outcome variants; `data` starts at {:?}, and {} bytes are required to be stored for the variants", data, tests.len());
+            panic!(
+                "not enough memory available to store outcome variants; `data` starts at {:?}, and {} bytes are required to be stored for the variants",
+                data,
+                tests.len()
+            );
         }
 
         Self {
@@ -277,6 +281,15 @@ impl TestOutcomes {
             data: self.data,
         }
     }
+
+    pub(crate) fn modules<'a, 'b>(&'a self, parent: &'b [&'b str]) -> TestOutcomesModules<'a, 'b> {
+        TestOutcomesModules {
+            tests: self.tests.iter(),
+            parent: parent,
+            current: None,
+            previous: None,
+        }
+    }
 }
 
 pub(crate) struct TestOutcomesIter {
@@ -310,6 +323,47 @@ impl Iterator for TestOutcomesIter {
         } else {
             None
         }
+    }
+}
+
+/// Iterates over modules in the current parent module tree.
+pub(crate) struct TestOutcomesModules<'a, 'b> {
+    tests: slice::Iter<'a, &'static dyn TestCase>,
+    parent: &'b [&'b str],
+    current: Option<(&'a [&'a str], usize)>,
+    previous: Option<&'a [&'a str]>,
+}
+
+impl<'a> Iterator for TestOutcomesModules<'a, '_> {
+    type Item = &'a [&'a str];
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some((modules, mut index)) = self
+            .current
+            .take()
+            .or_else(|| self.tests.next().map(|test_case| (test_case.modules(), 0)))
+        {
+            // Check if this module path is in the parent.
+            if modules.len() > index && self.parent.starts_with(&modules[..index]) {
+                index += 1;
+                self.current = Some((modules, index));
+                // Check if this module path is contained in the previous.
+                if let Some(previous) = self.previous {
+                    if !previous.starts_with(&modules[..index]) {
+                        // We haven't returned this path yet.
+                        return Some(&modules[..index]);
+                    }
+                } else {
+                    // No previous, so we can just keep going.
+                    return Some(&modules[..index]);
+                }
+            } else {
+                // Move on to the next test.
+                self.current = None;
+                self.previous = Some(&modules[..index]);
+            }
+        }
+        None
     }
 }
 
@@ -353,8 +407,53 @@ impl Filter for Ignored {
     }
 }
 
+#[derive(Clone, Debug)]
+pub(crate) struct ModuleFilter<'a> {
+    module_path: &'a [&'a str],
+}
+
+impl<'a> ModuleFilter<'a> {
+    pub(crate) fn new(module_path: &'a [&'a str]) -> Self {
+        Self { module_path }
+    }
+
+    pub(crate) fn filter(&self, test_case: &'static dyn TestCase) -> bool {
+        test_case.modules().starts_with(self.module_path)
+    }
+
+    pub(crate) fn module_path(&self) -> &[&str] {
+        self.module_path
+    }
+}
+
+pub(crate) struct FilteredTestOutcomesIter<'a, Filter> {
+    iter: TestOutcomesIter,
+    filter: PhantomData<Filter>,
+    module_filter: Option<&'a ModuleFilter<'a>>,
+}
+
+impl<Filter> Iterator for FilteredTestOutcomesIter<'_, Filter>
+where
+    Filter: self::Filter,
+{
+    type Item = <TestOutcomesIter as Iterator>::Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some((test_case, outcome)) = self.iter.next() {
+            if Filter::filter(&outcome)
+                && self
+                    .module_filter
+                    .is_none_or(|filter| filter.filter(test_case))
+            {
+                return Some((test_case, outcome));
+            }
+        }
+        None
+    }
+}
+
 #[derive(Debug)]
-pub(crate) struct Window<Filter, const SIZE: usize> {
+pub(crate) struct Window<'a, Filter, const SIZE: usize> {
     test_case: *const &'static dyn TestCase,
     outcome: *const OutcomeVariant,
     /// The error message at the top of the screen.
@@ -369,9 +468,10 @@ pub(crate) struct Window<Filter, const SIZE: usize> {
     filtered_index: usize,
 
     filter: PhantomData<Filter>,
+    module_filter: Option<&'a ModuleFilter<'a>>,
 }
 
-impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
+impl<'a, Filter, const SIZE: usize> Window<'a, Filter, SIZE> {
     fn next_error_message(error_message: &mut *const (usize, u8)) -> &'static str {
         unsafe {
             let length = error_message.cast::<usize>().read();
@@ -452,13 +552,15 @@ impl<Filter, const SIZE: usize> Window<Filter, SIZE> {
 // Whenever we need a new one in either direction, we search using the filter until we find the next element.
 // If there is not one, the functions return `None`.
 // `get()` will get the outcome currently shown at the given `index`.
-impl<Filter, const SIZE: usize> Window<Filter, SIZE>
+impl<'a, Filter, const SIZE: usize> Window<'a, Filter, SIZE>
 where
     Filter: self::Filter,
 {
     fn calculate_error_message_back(
         mut error_messages: *const (usize, u8),
         mut outcomes: *const OutcomeVariant,
+        mut test_case: *const &'static dyn TestCase,
+        module_filter: Option<&ModuleFilter>,
         length: usize,
     ) -> *const (usize, u8) {
         let mut unfiltered_index = 0;
@@ -472,18 +574,27 @@ where
                 }
             };
 
-            if Filter::filter(&outcome) {
+            if Filter::filter(&outcome)
+                && module_filter
+                    .as_ref()
+                    .is_none_or(|filter| filter.filter(unsafe { test_case.read() }))
+            {
                 index += 1;
             }
             unfiltered_index += 1;
             unsafe {
                 outcomes = outcomes.add(1);
+                test_case = test_case.add(1);
             }
         }
         error_messages
     }
 
-    pub(crate) fn new(test_outcomes: &TestOutcomes, length: usize) -> Self {
+    pub(crate) fn new(
+        test_outcomes: &TestOutcomes,
+        length: usize,
+        module_filter: Option<&'a ModuleFilter<'a>>,
+    ) -> Self {
         let mut window = Self {
             test_case: test_outcomes.tests.as_ptr(),
             outcome: test_outcomes.outcomes as *const OutcomeVariant,
@@ -491,6 +602,8 @@ where
             error_message_back: Self::calculate_error_message_back(
                 test_outcomes.data as *const (usize, u8),
                 test_outcomes.outcomes as *const OutcomeVariant,
+                test_outcomes.tests.as_ptr(),
+                module_filter,
                 test_outcomes.tests.len(),
             ),
 
@@ -501,9 +614,15 @@ where
             filtered_index: 0,
 
             filter: PhantomData,
+            module_filter: module_filter,
         };
         while let Some(outcome) = window.next_unfiltered() {
-            if Filter::filter(&outcome) {
+            if Filter::filter(&outcome)
+                && window
+                    .module_filter
+                    .as_ref()
+                    .is_none_or(|filter| filter.filter(unsafe { window.test_case.read() }))
+            {
                 break;
             }
         }
@@ -515,7 +634,12 @@ where
         let old_self = self.clone();
 
         while let Some(outcome) = self.next_unfiltered() {
-            if Filter::filter(&outcome) {
+            if Filter::filter(&outcome)
+                && self
+                    .module_filter
+                    .as_ref()
+                    .is_none_or(|filter| filter.filter(unsafe { self.test_case.read() }))
+            {
                 self.filtered_index += 1;
                 return Some(outcome);
             }
@@ -530,7 +654,12 @@ where
         let old_self = self.clone();
 
         while let Some(outcome) = self.prev_unfiltered() {
-            if Filter::filter(&outcome) {
+            if Filter::filter(&outcome)
+                && self
+                    .module_filter
+                    .as_ref()
+                    .is_none_or(|filter| filter.filter(unsafe { self.test_case.read() }))
+            {
                 self.filtered_index -= 1;
                 return Some(outcome);
             }
@@ -541,16 +670,17 @@ where
         None
     }
 
-    pub(crate) fn iter(
-        &self,
-    ) -> impl Iterator<Item = (&'static dyn TestCase, Outcome<&'static str>)> {
-        TestOutcomesIter {
-            tests: unsafe { slice::from_raw_parts(self.test_case, self.length - self.index) }
-                .iter(),
-            outcomes: self.outcome as *mut OutcomeVariant,
-            data: self.error_message_front as *mut usize,
+    pub(crate) fn iter(&self) -> FilteredTestOutcomesIter<'_, Filter> {
+        FilteredTestOutcomesIter {
+            iter: TestOutcomesIter {
+                tests: unsafe { slice::from_raw_parts(self.test_case, self.length - self.index) }
+                    .iter(),
+                outcomes: self.outcome as *mut OutcomeVariant,
+                data: self.error_message_front as *mut usize,
+            },
+            filter: PhantomData,
+            module_filter: self.module_filter,
         }
-        .filter(|(_, outcome)| Filter::filter(outcome))
     }
 
     pub(crate) fn get(&self, index: usize) -> Option<(&dyn TestCase, Outcome<&'static str>)> {
@@ -558,7 +688,7 @@ where
     }
 }
 
-impl<Filter, const SIZE: usize> Clone for Window<Filter, SIZE> {
+impl<Filter, const SIZE: usize> Clone for Window<'_, Filter, SIZE> {
     fn clone(&self) -> Self {
         Self {
             test_case: self.test_case,
@@ -573,6 +703,7 @@ impl<Filter, const SIZE: usize> Clone for Window<Filter, SIZE> {
             filtered_index: self.filtered_index,
 
             filter: PhantomData,
+            module_filter: self.module_filter.clone(),
         }
     }
 }
@@ -625,7 +756,7 @@ mod tests {
 
     #[test]
     fn error_message_write_str() {
-        #[link_section = ".ewram"]
+        #[unsafe(link_section = ".ewram")]
         static mut BUFFER: [u8; 12] = [0u8; 12];
         let mut pointer = unsafe { BUFFER.as_mut_ptr() }.cast();
         let mut error_message = unsafe { ErrorMessage::new(&mut pointer) };

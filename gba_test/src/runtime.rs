@@ -113,5 +113,5 @@ global_asm! {
     ime_offset = const IME_OFFSET,
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub fn __sync_synchronize() {}

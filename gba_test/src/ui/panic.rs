@@ -1,7 +1,7 @@
 //! UI display for panic messages that occur outside of tests.
 
 use super::{
-    font, load_ui_tiles, wait_for_vblank, Cursor, BG0CNT, BG1CNT, DISPCNT, TEXT_ENTRIES, UI_ENTRIES,
+    BG0CNT, BG1CNT, Cursor, DISPCNT, TEXT_ENTRIES, UI_ENTRIES, font, load_ui_tiles, wait_for_vblank,
 };
 use crate::{
     mmio::{DisplayStatus, Interrupt},

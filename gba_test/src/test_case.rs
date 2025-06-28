@@ -241,7 +241,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{split_module_path, split_module_path_len, Ignore, ShouldPanic, Test, TestCase};
+    use super::{Ignore, ShouldPanic, Test, TestCase, split_module_path, split_module_path_len};
 
     use claims::{assert_matches, assert_none, assert_some_eq};
     use gba_test_macros::test;

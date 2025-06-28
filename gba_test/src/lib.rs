@@ -98,14 +98,14 @@ mod ui;
 pub use gba_test_macros::test;
 pub use runner::runner;
 pub use termination::Termination;
-#[doc(hidden)]
-pub use test_case::{split_module_path, split_module_path_len, Test};
 pub use test_case::{Ignore, ShouldPanic, TestCase};
+#[doc(hidden)]
+pub use test_case::{Test, split_module_path, split_module_path_len};
 
 use test::{Outcome, Tests};
 
 #[cfg(test)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub fn main() {
     // We don't care if logging doesn't initialize, we just want to initialize it if we happen to
     // be running on mGBA.

@@ -48,6 +48,9 @@ impl KeyInput {
     pub(crate) const NONE: Self = Self(0b0000_0011_1111_1111);
     pub(crate) const A: Self = Self(0b0000_0011_1111_1110);
     pub(crate) const B: Self = Self(0b0000_0011_1111_1101);
+    pub(crate) const START: Self = Self(0b000_0011_1111_0111);
+    pub(crate) const RIGHT: Self = Self(0b0000_0011_1110_1111);
+    pub(crate) const LEFT: Self = Self(0b0000_0011_1101_1111);
     pub(crate) const UP: Self = Self(0b0000_0011_1011_1111);
     pub(crate) const DOWN: Self = Self(0b0000_0011_0111_1111);
     pub(crate) const R: Self = Self(0b0000_0010_1111_1111);
@@ -55,8 +58,6 @@ impl KeyInput {
 
     pub(crate) const fn contains(self, other: Self) -> bool {
         (Self::NONE.0 ^ self.0) & (Self::NONE.0 ^ other.0) == (Self::NONE.0 ^ other.0)
-
-        // self.0 & other.0 == other.0
     }
 }
 

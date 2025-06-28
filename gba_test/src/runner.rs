@@ -5,16 +5,16 @@
 //! apply for other targets.
 
 use crate::{
-    allocator,
+    Outcome, ShouldPanic, TestCase, Tests, allocator,
     allocator::Allocator,
     contains::contains,
     log,
     mmio::{
-        bios::{HaltControl, RegisterRamReset},
         DisplayStatus, Interrupt,
+        bios::{HaltControl, RegisterRamReset},
     },
     test_case::Ignore,
-    ui, Outcome, ShouldPanic, TestCase, Tests,
+    ui,
 };
 use core::{arch::asm, fmt::Display, mem::MaybeUninit, panic::PanicInfo, ptr::addr_of};
 
@@ -22,9 +22,9 @@ const DISPSTAT: *mut DisplayStatus = 0x0400_0004 as *mut DisplayStatus;
 const IME: *mut bool = 0x0400_0208 as *mut bool;
 const IE: *mut Interrupt = 0x0400_0200 as *mut Interrupt;
 
-#[link_section = ".noinit"]
+#[unsafe(link_section = ".noinit")]
 static mut INITIALIZED: bool = false;
-#[link_section = ".noinit"]
+#[unsafe(link_section = ".noinit")]
 static mut TESTS: MaybeUninit<Tests> = MaybeUninit::uninit();
 #[global_allocator]
 static ALLOCATOR: Allocator = Allocator;
@@ -124,7 +124,9 @@ fn panic(info: &PanicInfo) -> ! {
                         store_outcome(Outcome::<&str>::Passed);
                     } else {
                         log::info!("test failed");
-                        store_outcome(Outcome::Failed(format_args!("panic did not contain expected string\n     panic message: `{panic_message}`\nexpected substring: `{message}`")))
+                        store_outcome(Outcome::Failed(format_args!(
+                            "panic did not contain expected string\n     panic message: `{panic_message}`\nexpected substring: `{message}`"
+                        )))
                     }
                 }
             }
@@ -180,7 +182,7 @@ fn panic(info: &PanicInfo) -> ! {
 pub fn runner(tests: &'static [&'static dyn TestCase]) -> ! {
     if unsafe { !INITIALIZED } {
         // Use the remaining unused space in ewram as our data heap.
-        extern "C" {
+        unsafe extern "C" {
             static __ewram_data_end: u8;
         }
         unsafe {
