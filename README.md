@@ -36,10 +36,9 @@ In your `Cargo.toml` manifest, add `gba_test` to your list of dev-dependencies:
 [package]
 name = "your_project"
 version = "0.1.0"
-edition = "2021"
 
 [dev-dependencies]
-gba_test = "0.3.2"
+gba_test = "0.4.0"
 ```
 
 ### Running the test runner

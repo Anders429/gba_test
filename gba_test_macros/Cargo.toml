@@ -1,6 +1,6 @@
 [package]
 name = "gba_test_macros"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Anders Evensen"]
 edition = "2021"
 license = "MIT OR Apache-2.0"

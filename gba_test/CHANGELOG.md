@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 - 2025-06-30
 ### Added
 - Filtering by module is now possible by pressing the start button.
 - Added `TestCase::modules()` for returning a slice representing the path to the test.

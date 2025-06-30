@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 - 2025-06-30
 ### Added
 - Populates modules by splitting the current module path at compile time.
 ### Removed
