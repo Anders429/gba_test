@@ -143,12 +143,16 @@ where
                     }
                 }
                 if keys.contains(KeyInput::A) {
-                    return Some(
-                        test_outcomes
-                            .modules(parent)
-                            .nth(index)
-                            .map(ModuleFilter::new),
-                    );
+                    if index == 0 {
+                        return Some(None);
+                    } else {
+                        return Some(
+                            test_outcomes
+                                .modules(parent)
+                                .nth(index)
+                                .map(ModuleFilter::new),
+                        );
+                    }
                 }
                 if keys.contains(KeyInput::B) || keys.contains(KeyInput::START) {
                     // Don't change the module filter at all.

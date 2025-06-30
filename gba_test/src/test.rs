@@ -288,6 +288,7 @@ impl TestOutcomes {
             parent,
             current: None,
             previous: None,
+            returned_none: false,
         }
     }
 }
@@ -332,12 +333,18 @@ pub(crate) struct TestOutcomesModules<'a, 'b> {
     parent: &'b [&'b str],
     current: Option<(&'a [&'a str], usize)>,
     previous: Option<&'a [&'a str]>,
+    returned_none: bool,
 }
 
 impl<'a> Iterator for TestOutcomesModules<'a, '_> {
     type Item = &'a [&'a str];
 
     fn next(&mut self) -> Option<Self::Item> {
+        if !self.returned_none {
+            self.returned_none = true;
+            return Some(&["--none--"]);
+        }
+
         while let Some((modules, mut index)) = self
             .current
             .take()
