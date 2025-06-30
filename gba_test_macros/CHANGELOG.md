@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+### Added
+- Populates modules by splitting the current module path at compile time.
+### Removed
+- No longer populates the module field (since it was removed from `gba_test`).
+
 ## 0.3.0 - 2024-12-27
 ### Added
 - Support for returning `Result<T, E>` from tests, as well as other custom return types.

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+### Added
+- Filtering by module is now possible by pressing the start button.
+- Added `TestCase::modules()` for returning a slice representing the path to the test.
+### Changed
+- `gba_test` now requires the Rust 2024 edition.
+### Removed
+- Removed `TestCase::module()` in favor of the newly added `TestCase::modules()`.
+
 ## 0.3.2 - 2025-04-17
 ### Fixed
 - Incorrect error message pointer manipulation when paging down. This caused the pointers to move the wrong directions, which caused undefined behavior if repeated enough times to get pointers to point to test result data instead of message data.
