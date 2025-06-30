@@ -41,7 +41,7 @@ impl<const N: usize> Align4<[u8; N]> {
     #[inline]
     #[must_use]
     pub fn as_u32_slice(&self) -> &[u32] {
-        assert!(self.0.len() % 4 == 0);
+        assert!(self.0.len().is_multiple_of(4));
         // Safety: our struct is aligned to 4, so the pointer will already be
         // aligned, we only need to check the length
         unsafe {
