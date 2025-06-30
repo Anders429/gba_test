@@ -46,24 +46,28 @@ struct State {
 
 impl State {
     unsafe fn alloc(this: *mut Self, layout: Layout) -> *mut u8 {
-        // Align.
-        let mask = layout.align() - 1;
-        let offset = (*this).cursor as usize & mask;
-        (*this).cursor = (((*this).cursor as usize) - offset) as *const u8;
+        unsafe {
+            // Align.
+            let mask = layout.align() - 1;
+            let offset = (*this).cursor as usize & mask;
+            (*this).cursor = (((*this).cursor as usize) - offset) as *const u8;
 
-        (*this).cursor = ((*this).cursor as usize).saturating_sub(layout.size()) as *const u8;
+            (*this).cursor = ((*this).cursor as usize).saturating_sub(layout.size()) as *const u8;
 
-        if (*this).cursor >= (*this).limit {
-            (*this).cursor as *mut u8
-        } else {
-            ptr::null_mut()
+            if (*this).cursor >= (*this).limit {
+                (*this).cursor as *mut u8
+            } else {
+                ptr::null_mut()
+            }
         }
     }
 
     unsafe fn dealloc(this: *mut Self, ptr: *mut u8, layout: Layout) {
-        // If this is the last allocation, we can move the cursor back.
-        if ptr::eq(ptr, (*this).cursor) {
-            (*this).cursor = (*this).cursor.add(layout.size())
+        unsafe {
+            // If this is the last allocation, we can move the cursor back.
+            if ptr::eq(ptr, (*this).cursor) {
+                (*this).cursor = (*this).cursor.add(layout.size())
+            }
         }
     }
 }

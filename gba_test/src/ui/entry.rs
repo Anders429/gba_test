@@ -16,7 +16,7 @@ pub(super) fn show(test_case: &dyn TestCase, outcome: Outcome<&'static str>) {
     let mut cursor = unsafe { Cursor::new(TEXT_ENTRIES) };
     // Write test name.
     for module in test_case.modules() {
-        write!(cursor, "{}::", module).expect("failed to write module")
+        write!(cursor, "{module}::").expect("failed to write module")
     }
     writeln!(cursor, "{}", test_case.name()).expect("failed to write test name");
 
@@ -32,14 +32,14 @@ pub(super) fn show(test_case: &dyn TestCase, outcome: Outcome<&'static str>) {
         }
         Outcome::Ignored => {
             if let Some(message) = test_case.message() {
-                write!(cursor, "The test was ignored:\n{}", message)
+                write!(cursor, "The test was ignored:\n{message}")
                     .expect("failed to write ignored message");
             } else {
                 write!(cursor, "The test was ignored.").expect("failed to write ignored message");
             }
         }
         Outcome::Failed(message) => {
-            write!(cursor, "{}", message).expect("failed to write failure message");
+            write!(cursor, "{message}").expect("failed to write failure message");
         }
     }
 

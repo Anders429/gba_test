@@ -105,35 +105,35 @@ pub(crate) fn report_result(result: usize) {
 /// continue being run after the current test panics.
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    if unsafe { INITIALIZED } {
-        if let Some(test) = unsafe { TESTS.assume_init_ref().current_test() } {
-            // Panicked while executing a test. Handle the result.
-            match test.should_panic() {
-                ShouldPanic::No => {
-                    log::info!("test failed");
-                    store_outcome(Outcome::Failed(info));
-                }
-                ShouldPanic::Yes => {
+    if unsafe { INITIALIZED }
+        && let Some(test) = unsafe { TESTS.assume_init_ref().current_test() }
+    {
+        // Panicked while executing a test. Handle the result.
+        match test.should_panic() {
+            ShouldPanic::No => {
+                log::info!("test failed");
+                store_outcome(Outcome::Failed(info));
+            }
+            ShouldPanic::Yes => {
+                log::info!("test passed");
+                store_outcome(Outcome::<&str>::Passed);
+            }
+            ShouldPanic::YesWithMessage(message) => {
+                let panic_message = info.message();
+                if contains(info, message) {
                     log::info!("test passed");
                     store_outcome(Outcome::<&str>::Passed);
-                }
-                ShouldPanic::YesWithMessage(message) => {
-                    let panic_message = info.message();
-                    if contains(info, message) {
-                        log::info!("test passed");
-                        store_outcome(Outcome::<&str>::Passed);
-                    } else {
-                        log::info!("test failed");
-                        store_outcome(Outcome::Failed(format_args!(
-                            "panic did not contain expected string\n     panic message: `{panic_message}`\nexpected substring: `{message}`"
-                        )))
-                    }
+                } else {
+                    log::info!("test failed");
+                    store_outcome(Outcome::Failed(format_args!(
+                        "panic did not contain expected string\n     panic message: `{panic_message}`\nexpected substring: `{message}`"
+                    )))
                 }
             }
-
-            // Soft resetting the system allows us to recover from the panicked state and continue testing.
-            reset()
         }
+
+        // Soft resetting the system allows us to recover from the panicked state and continue testing.
+        reset()
     }
 
     // Panicked outside of executing a test.

@@ -151,7 +151,7 @@ fn draw_test_outcomes<'a, TestOutcomes, const SIZE: usize>(
     let mut cursor = unsafe { Cursor::new(TEXT_ENTRIES) };
     writeln!(cursor, "  All  Failed Passed Ignored").expect("failed to write page names");
     for length in lengths {
-        write!(cursor, "({:^4}) ", length).expect("failed to write test counts");
+        write!(cursor, "({length:^4}) ").expect("failed to write test counts");
     }
     for (test, outcome) in test_outcomes.take(18) {
         cursor.set_palette(0);
@@ -244,13 +244,13 @@ where
         .count();
     let lengths = [all_length, failed_length, passed_length, ignored_length];
     let mut all_window =
-        test::Window::<test::All, 18>::new(&test_outcomes, all_length, module_filter);
+        test::Window::<test::All, 18>::new(test_outcomes, all_length, module_filter);
     let mut failed_window =
-        test::Window::<test::Failed, 18>::new(&test_outcomes, failed_length, module_filter);
+        test::Window::<test::Failed, 18>::new(test_outcomes, failed_length, module_filter);
     let mut passed_window =
-        test::Window::<test::Passed, 18>::new(&test_outcomes, passed_length, module_filter);
+        test::Window::<test::Passed, 18>::new(test_outcomes, passed_length, module_filter);
     let mut ignored_window =
-        test::Window::<test::Ignored, 18>::new(&test_outcomes, ignored_length, module_filter);
+        test::Window::<test::Ignored, 18>::new(test_outcomes, ignored_length, module_filter);
     let mut page = Page::All(&mut all_window);
     let mut all_index = 0;
     let mut failed_index = 0;
@@ -335,7 +335,7 @@ where
                     //
                     // Allows the user to choose a module filter.
                     if let Some(result) = modules::show(
-                        &test_outcomes,
+                        test_outcomes,
                         module_filter
                             .map(|module_filter| module_filter.module_path())
                             .unwrap_or(&[]),

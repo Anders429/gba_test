@@ -50,8 +50,7 @@ pub(crate) fn display(info: &PanicInfo) -> ! {
     // If this write fails, just ignore it since we are already panicking.
     let _ = write!(
         cursor,
-        "The framework panicked outsideof testing:\n\n{}\n\nPlease report this error!",
-        info
+        "The framework panicked outsideof testing:\n\n{info}\n\nPlease report this error!"
     );
 
     // Disable interrupts.

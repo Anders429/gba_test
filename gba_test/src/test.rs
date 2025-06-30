@@ -160,7 +160,7 @@ impl Tests {
     /// # Panics
     /// If there is not enough memory available in `data` to store the outcome variants.
     pub(crate) unsafe fn new(tests: &'static [&'static dyn TestCase], data: *mut u8) -> Self {
-        let unsized_data = data.byte_add(tests.len()).align_forward() as *mut usize;
+        let unsized_data = unsafe { data.byte_add(tests.len()) }.align_forward() as *mut usize;
         if unsized_data as usize > EWRAM_MAX {
             panic!(
                 "not enough memory available to store outcome variants; `data` starts at {:?}, and {} bytes are required to be stored for the variants",
@@ -242,7 +242,7 @@ impl Tests {
         }
         if let Outcome::Failed(data) = outcome {
             let mut error_message = unsafe { ErrorMessage::new(&mut self.data) };
-            if write!(error_message, "{}", data).is_err() {
+            if write!(error_message, "{data}").is_err() {
                 panic!("not enough space to store error message: {data}");
             }
         }
@@ -285,7 +285,7 @@ impl TestOutcomes {
     pub(crate) fn modules<'a, 'b>(&'a self, parent: &'b [&'b str]) -> TestOutcomesModules<'a, 'b> {
         TestOutcomesModules {
             tests: self.tests.iter(),
-            parent: parent,
+            parent,
             current: None,
             previous: None,
         }
@@ -407,7 +407,7 @@ impl Filter for Ignored {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub(crate) struct ModuleFilter<'a> {
     module_path: &'a [&'a str],
 }
@@ -439,7 +439,7 @@ where
     type Item = <TestOutcomesIter as Iterator>::Item;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some((test_case, outcome)) = self.iter.next() {
+        for (test_case, outcome) in self.iter.by_ref() {
             if Filter::filter(&outcome)
                 && self
                     .module_filter
@@ -614,7 +614,7 @@ where
             filtered_index: 0,
 
             filter: PhantomData,
-            module_filter: module_filter,
+            module_filter,
         };
         while let Some(outcome) = window.next_unfiltered() {
             if Filter::filter(&outcome)
@@ -703,7 +703,7 @@ impl<Filter, const SIZE: usize> Clone for Window<'_, Filter, SIZE> {
             filtered_index: self.filtered_index,
 
             filter: PhantomData,
-            module_filter: self.module_filter.clone(),
+            module_filter: self.module_filter,
         }
     }
 }

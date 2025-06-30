@@ -147,7 +147,7 @@ where
                         test_outcomes
                             .modules(parent)
                             .nth(index)
-                            .map(|module| ModuleFilter::new(module)),
+                            .map(ModuleFilter::new),
                     );
                 }
                 if keys.contains(KeyInput::B) || keys.contains(KeyInput::START) {
