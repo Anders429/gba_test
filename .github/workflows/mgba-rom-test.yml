@@ -24,7 +24,7 @@ jobs:
     - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} pass.gba
     - run: cargo install gbafix
     - run: gbafix pass.gba
-    - uses: felixjones/github-mgba-rom-test@v1
+    - uses: felixjones/github-mgba-rom-test@main
       with:
         swi-call: 0x27
         read-register: 'r0'
@@ -44,7 +44,7 @@ jobs:
     - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} ignore.gba
     - run: cargo install gbafix
     - run: gbafix ignore.gba
-    - uses: felixjones/github-mgba-rom-test@v1
+    - uses: felixjones/github-mgba-rom-test@main
       with:
         swi-call: 0x27
         read-register: 'r0'
@@ -64,7 +64,7 @@ jobs:
     - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} ignore_with_message.gba
     - run: cargo install gbafix
     - run: gbafix ignore_with_message.gba
-    - uses: felixjones/github-mgba-rom-test@v1
+    - uses: felixjones/github-mgba-rom-test@main
       with:
         swi-call: 0x27
         read-register: 'r0'
@@ -84,7 +84,7 @@ jobs:
     - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} multiple_ignore.gba
     - run: cargo install gbafix
     - run: gbafix multiple_ignore.gba
-    - uses: felixjones/github-mgba-rom-test@v1
+    - uses: felixjones/github-mgba-rom-test@main
       with:
         swi-call: 0x27
         read-register: 'r0'
@@ -104,7 +104,7 @@ jobs:
     - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} fail.gba
     - run: cargo install gbafix
     - run: gbafix fail.gba
-    - uses: felixjones/github-mgba-rom-test@v1
+    - uses: felixjones/github-mgba-rom-test@main
       with:
         swi-call: 0x27
         read-register: 'r0'
@@ -124,7 +124,7 @@ jobs:
     - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} should_panic_pass.gba
     - run: cargo install gbafix
     - run: gbafix should_panic_pass.gba
-    - uses: felixjones/github-mgba-rom-test@v1
+    - uses: felixjones/github-mgba-rom-test@main
       with:
         swi-call: 0x27
         read-register: 'r0'
@@ -144,7 +144,7 @@ jobs:
     - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} should_panic_fail.gba
     - run: cargo install gbafix
     - run: gbafix should_panic_fail.gba
-    - uses: felixjones/github-mgba-rom-test@v1
+    - uses: felixjones/github-mgba-rom-test@main
       with:
         swi-call: 0x27
         read-register: 'r0'
@@ -164,7 +164,7 @@ jobs:
     - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} should_panic_message_pass.gba
     - run: cargo install gbafix
     - run: gbafix should_panic_message_pass.gba
-    - uses: felixjones/github-mgba-rom-test@v1
+    - uses: felixjones/github-mgba-rom-test@main
       with:
         swi-call: 0x27
         read-register: 'r0'
@@ -184,7 +184,7 @@ jobs:
     - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} should_panic_message_fail.gba
     - run: cargo install gbafix
     - run: gbafix should_panic_message_fail.gba
-    - uses: felixjones/github-mgba-rom-test@v1
+    - uses: felixjones/github-mgba-rom-test@main
       with:
         swi-call: 0x27
         read-register: 'r0'
@@ -204,7 +204,7 @@ jobs:
     - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} allocate.gba
     - run: cargo install gbafix
     - run: gbafix allocate.gba
-    - uses: felixjones/github-mgba-rom-test@v1
+    - uses: felixjones/github-mgba-rom-test@main
       with:
         swi-call: 0x27
         read-register: 'r0'
@@ -224,7 +224,7 @@ jobs:
     - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} result_pass.gba
     - run: cargo install gbafix
     - run: gbafix result_pass.gba
-    - uses: felixjones/github-mgba-rom-test@v1
+    - uses: felixjones/github-mgba-rom-test@main
       with:
         swi-call: 0x27
         read-register: 'r0'
@@ -244,7 +244,7 @@ jobs:
     - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} result_fail.gba
     - run: cargo install gbafix
     - run: gbafix result_fail.gba
-    - uses: felixjones/github-mgba-rom-test@v1
+    - uses: felixjones/github-mgba-rom-test@main
       with:
         swi-call: 0x27
         read-register: 'r0'

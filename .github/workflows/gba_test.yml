@@ -24,7 +24,7 @@ jobs:
     - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} test.gba
     - run: cargo install gbafix
     - run: gbafix test.gba
-    - uses: felixjones/github-mgba-rom-test@v1
+    - uses: felixjones/github-mgba-rom-test@main
       with:
         swi-call: 0x27
         read-register: 'r0'
