@@ -1,6 +1,6 @@
 [package]
 name = "gba_test"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["Anders Evensen"]
 edition = "2024"
 license = "MIT OR Apache-2.0"
@@ -38,4 +38,4 @@ log = ["dep:log"]
 macros = ["dep:gba_test_macros"]
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ["cfg(doc_cfg)"]}
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(doc_cfg)", "cfg(gba_test_mb)"]}

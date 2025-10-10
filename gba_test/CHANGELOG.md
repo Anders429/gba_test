@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0 - 2025-10-10
+### Added
+- Support for building tests as multiboot ROMs.
+
 ## 0.4.0 - 2025-06-30
 ### Added
 - Filtering by module is now possible by pressing the start button.

@@ -31,6 +31,28 @@ jobs:
         rom-path: test.gba
         success-code: 0  # Pass
 
+  test_mb:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@nightly
+      with:
+        components: rust-src
+    - run: sudo apt-get install binutils-arm-none-eabi
+    - run: cd gba_test && cargo test --features log --no-run --message-format=json | tee results.json
+      env:
+        RUSTFLAGS: -Clinker=arm-none-eabi-ld -Clink-arg=-Tgba.ld -Ztrap-unreachable=no --cfg gba_test_mb
+    - run: echo "ROM_PATH=$(cd tests/parse_executable && cargo run ../../gba_test/results.json )" >> $GITHUB_ENV
+    - run: arm-none-eabi-objcopy -O binary ${{ env.ROM_PATH }} test.mb.gba
+    - run: cargo install gbafix
+    - run: gbafix test.mb.gba
+    - uses: felixjones/github-mgba-rom-test@v1
+      with:
+        swi-call: 0x27
+        read-register: 'r0'
+        rom-path: test.mb.gba
+        success-code: 0  # Pass
+
   check:
     runs-on: ubuntu-latest
     steps:

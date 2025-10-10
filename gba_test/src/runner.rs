@@ -52,6 +52,12 @@ where
 #[inline]
 #[instruction_set(arm::t32)]
 fn reset() -> ! {
+    // If this is a multiboot binary, we must instruct the BIOS to return to EWRAM instead of ROM.
+    #[cfg(gba_test_mb)]
+    unsafe {
+        (0x0300_7ffa as *mut bool).write_volatile(true)
+    }
+
     unsafe {
         // Resets everything besides EWRAM and IWRAM.
         asm! {
