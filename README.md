@@ -117,6 +117,9 @@ gbafix test.gba
 
 Now, `test.gba` is prepared to run on real Game Boy Advance hardware. See documentation for your flash cart for instructions on flashing the `.gba` file to the cartridge and running it.
 
+#### Multiboot
+Tests can also be built as a multiboot ROM. To do this, pass `--cfg gba_test_mb` when building.
+
 ### Running using `mgba-rom-test`
 `gba_test` is configured to be run with the [`mgba-rom-test`](https://github.com/mgba-emu/mgba/blob/master/src/platform/test/rom-test-main.c) binary using SWI call `0x27` with `r0` as the output register. The following exit values may be emitted:
 - `0` - A successful test run.
